@@ -9,7 +9,7 @@ description: >
 
 parameters:
 
-  image:
+  executor-image:
     description: specify circleci docker executor
     type: string
     default: docker.io/twdps/circleci-executor-builder:alpine-stable
@@ -22,4 +22,4 @@ parameters:
 resource_class: << parameters.resource-class >>
 
 docker:
-  - image: << parameters.image >>
+  - image: << parameters.executor-image >>

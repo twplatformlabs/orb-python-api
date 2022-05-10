@@ -24,6 +24,6 @@ steps:
         - run:
             name: Create system venv and install dev packages
             command: |
-              PIPENV_VENV_IN_PROJECT=1 pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
+              PIPENV_VENV_IN_PROJECT=1 pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>> --skip-lock
               echo "PATH=/.venv/bin:\$PATH" >> $BASH_ENV
               pip list

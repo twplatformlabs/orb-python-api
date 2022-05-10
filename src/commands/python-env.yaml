@@ -10,6 +10,11 @@ parameters:
     enum: ["pipenv", "none"]
     default: "none"
 
+  install-dev:
+    description: Install dev packages also. Not necessary if installed on executor
+    type: boolean
+    default: false
+
 steps:
    - when:
       name: Use standard pipenv virtual env configuration
@@ -19,5 +24,5 @@ steps:
         - run:
             name: Create system venv and install dev packages
             command: |
-              PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
+              PIPENV_VENV_IN_PROJECT=1 pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
               echo "PATH=/.venv/bin:\$PATH" >> $BASH_ENV

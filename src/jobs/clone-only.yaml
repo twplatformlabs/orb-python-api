@@ -1,0 +1,71 @@
+# src/jobs/static-analysis.yaml
+
+description: python, non-security static code analysis
+
+executor:
+  name: circleci-python-builder
+  executor-image: << parameters.executor-image >>
+  resource-class: << parameters.executor-resource-class >>
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    type: string
+    default: /bin/sh -eo pipefail
+
+  executor-image:
+    description: specify machine executor
+    type: string
+    default: twdps/circleci-python-builder:stable
+
+  executor-resource-class:
+    description: specify executor resource class. Default is medium.
+    type: enum
+    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    default: medium
+
+  # after-checkout:
+  #   description: Optional steps to run after checking out the code.
+  #   type: steps
+  #   default: []
+
+  # virtualenv:
+  #   description: use python virtual environment
+  #   type: enum
+  #   enum: ["pipenv", "none"]
+  #   default: "none"
+
+  # lint-path:
+  #   description: path of python files to run pylint against
+  #   type: string
+  #   default: "."
+
+  # unit-test-folder:
+  #   description: path of pytest unit test files
+  #   type: string
+  #   default: "test"
+
+  # test-coverage:
+  #   description: include test coverage analysis using python package _coverage_
+  #   type: boolean
+  #   default: false
+
+  # report-coverage:
+  #   description: Send test coverage result to report aggregator
+  #   type: enum
+  #   enum: ["codeclimate", "codacy", "none"]
+  #   default: "none"
+
+  # after-analysis:
+  #   description: Optional steps to run after static code analysis.
+  #   type: steps
+  #   default: []
+
+steps:
+  - checkout
+  - setup_remote_docker
+  - run:
+      name: force fail in order to debug job steps
+      command: exit 1

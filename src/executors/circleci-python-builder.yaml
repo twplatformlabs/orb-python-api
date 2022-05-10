@@ -1,0 +1,25 @@
+# src/executors/circleci-python-builder.yaml
+
+description: >
+  By default, orb-python-api uses the alpine based dps circleci-python-builder
+  convenience image. The image includes standard tools well suited to building and
+  testing python api code.
+
+  https://hub.docker.com/repository/docker/twdps/circleci-executor-builder
+
+parameters:
+
+  image:
+    description: specify circleci docker executor
+    type: string
+    default: docker.io/twdps/circleci-executor-builder:alpine-stable
+
+  resource-class:
+    description: specify the resouce class for the image
+    type: enum
+    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+
+resource_class: << parameters.resource-class >>
+
+docker:
+  - image: << parameters.image >>

@@ -1,0 +1,22 @@
+---
+version: 2.1
+
+description: |
+  Continuous Integration and Build for python apis. This is a reference orb based on the following
+  setup of assumptions.
+
+  Currently supported confnigurations:
+
+  - override default shell options
+  - define executor to use for build, default is twdps/circleci-python-builder
+  - use machine executor, installs latest release versions of build/test tools (pending)
+  - support for private dtr compatible registries and AWS ECR (pending)
+  - support for customer dockerfile path/name, tags, tag annotations
+  - snyk cve scanning
+  - hadolint of dockerfile
+  - support for conftest CIS Docker benchmarks for section 4 (Docker image)
+  - support for bats-based image smoke testing
+  - hooks for extrag build args and lifecycle steps at multiple points
+
+display:
+  source_url: "https://github.com/ThoughtWorks-DPS/orb-python-api"

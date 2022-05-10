@@ -1,0 +1,59 @@
+# src/commands/unit-test.yaml
+
+description: Run pytest from target folder. Use folder named test by default.
+
+parameters:
+
+  unit-test-folder:
+    description: path of pytest unit test files
+    type: string
+    default: "test"
+
+  venv:
+    description: use python virtual environment
+    type: enum
+    enum: ["pipenv", "none"]
+    default: "none"
+
+  test-coverage:
+    description: include calculation of test coverage in unint test run
+    type: boolean
+    default: false
+
+  report-coverage:
+    description: Send test coverage result to report aggregator
+    type: enum
+    enum: ["codeclimate", "codacy", "none"]
+    default: "none"
+
+steps:
+  - when:
+      name: Use standard pipenv virtual env configuration
+      condition:
+        equal: [ << pipeline.virtualenv >>, "pipenv" ]
+      steps:
+        - run:
+            name: Run pytest
+            command: |
+              pipenv run <<#parameters.test-coverage>>coverage run -m <</parameters.test-coverage>>pytest << parameters.unit-test-folder >> -vv -l
+              pipenv run <<#parameters.test-coverage>>coverage xml --omit='<< parameters.unit-test-folder >>/*'<</parameters.test-coverage>>
+  - when:
+      name: No virtual env configuration
+      condition:
+        equal: [ << pipeline.virtualenv >>, "none" ]
+      steps:
+        - run:
+            name: Run pytest
+            command: |
+              <<#parameters.test-coverage>>coverage run -m <</parameters.test-coverage>>pytest << parameters.unit-test-folder >> -vv -l
+              <<#parameters.test-coverage>>coverage xml --omit='<< parameters.unit-test-folder >>/*'<</parameters.test-coverage>>
+  - when:
+      name: Report test coverage to codeclimate
+      condition:
+        equal: [ << pipeline.report-coverage >>, "codeclimate" ]
+      steps:
+        - run:
+            name: Send coverage report to codeclimate
+            command: |
+              cc-test-reporter format-coverage -t coverage.py
+              cc-test-reporter upload-coverage

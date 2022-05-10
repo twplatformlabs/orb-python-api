@@ -1,0 +1,45 @@
+# src/commands/bats.yaml
+
+description: |
+  A common method of testing docker image configuration for infrastructure-as-code oriented containers.
+  This test will first run the docker image and then execute the bats test.
+  (see https://github.com/bats-core/bats-core)
+
+parameters:
+
+  registry:
+    description: Name of registry
+    type: string
+    default: docker.io
+
+  image:
+    description: Name of image
+    type: string
+
+  tag:
+    description: Value for tag
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  container-name:
+    description: name for running container
+    type: string
+    default: container-test
+
+  entry-point:
+    description: name of shell ( bash | ash | etc )
+    type: string
+    default: /bin/bash
+
+  test-path:
+    description: Name of folder with bats tests
+    type: string
+    default: test
+
+steps:
+  - run:
+      name: run image to be tested
+      command: docker run -it -d --name << parameters.container-name >> --entrypoint << parameters.entry-point >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+  - run:
+      name: run bats test
+      command: bats << parameters.test-path >>

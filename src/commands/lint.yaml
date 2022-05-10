@@ -1,0 +1,34 @@
+# src/commands/lint.yaml
+
+description: Run pylint against parameter target or . by default.
+
+parameters:
+
+  lint-path:
+    description: path of python files to run pylint against
+    type: string
+    default: "."
+
+  virtualenv:
+    description: run lint within pipenv virtual environment
+    type: enum
+    enum: ["pipenv", "none"]
+    default: "none"
+
+steps:
+  - when:
+      name: Use standard pipenv virtual env configuration
+      condition:
+        equal: [ "pipenv", << parameters.virtualenv >> ]
+      steps:
+        - run:
+            name: Run pylint
+            command: pipenv run pylint << parameters.lint-path >>
+  - when:
+      name: No virtual env configuration
+      condition:
+        equal: [  "none", << parameters.virtualenv >> ]
+      steps:
+        - run:
+            name: Run pylint
+            command: pylint << parameters.lint-path >>

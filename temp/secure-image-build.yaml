@@ -1,0 +1,209 @@
+# src/jobs/secure-image-build.yaml
+
+description: Development build and release of oci compatable image
+
+executor:
+  name: circleci-python-builder
+  image: << parameters.executor-image >>
+  resource-class: << parameters.executor-resource-class >>
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    type: string
+    default: /bin/sh -eo pipefail
+
+  executor-image:
+    description: specify machine executor
+    type: string
+    default: twdps/circleci-executor-builder:alpine-stable
+
+  executor-resource-class:
+    description: specify executor resource class. Default is medium.
+    type: enum
+    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    default: medium
+
+  registry:
+    description: Name of registry
+    type: string
+    default: docker.io
+
+  registry-login:
+    description: username for reigstry access
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: password for registry access
+    type: env_var_name
+    default: DOCKER_PASSWORD
+
+  aws-ecr:
+    description: use aws elastic container registry
+    type: boolean
+    default: false
+
+  dockerfile:
+    description: Name of dockerfile
+    type: string
+    default: Dockerfile
+
+  path:
+    description: Path to the directory containing your Dockerfile and build context
+    type: string
+    default: .
+
+  image:
+    description: Name of image
+    type: string
+
+  tag:
+    description: Value for dev build tag
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  tag-annotation:
+    description: Additional text prepended to semantic version tag
+    type: string
+    default: ""
+
+  docker-cve-scan:
+    description: perform snyk.io docker cve scan
+    type: boolean
+    default: false
+
+  severity-threshold:
+    description: snyk test reporting threshold
+    type: string
+    default: "low"
+
+  snyk-organization:
+    description: Trigger Scan results related to repository associated with organization created at snyk.io
+    type: string
+    default: ""
+
+  snyk-token:
+    description: snyk.io api-token
+    type: env_var_name
+    default: SNYK_TOKEN
+
+  skip-base-image:
+    description: optionally, skip performing cve scan of base image
+    type: boolean
+    default: false
+
+  cis-docker-image-scan:
+    description: perform CIS Docker Benchmark Section 4 assessment
+    type: boolean
+    default: false
+
+  bats-test:
+    description: Run container configuration check bats test
+    type: boolean
+    default: false
+
+  container-name:
+    description: name for running container
+    type: string
+    default: container-test
+
+  entry-point:
+    description: name of shell ( bash | ash | etc)
+    type: string
+    default: /bin/bash
+
+  test-path:
+    description: Name of folder with tests
+    type: string
+    default: test
+
+  extra-build-args:
+    description: >
+      Extra flags to pass to docker build. For examples, see
+      https://docs.docker.com/engine/reference/commandline/build
+    type: string
+    default: ""
+
+  after-checkout:
+    description: Optional steps to run after checking out the code.
+    type: steps
+    default: []
+
+  before-build:
+    description: Optional steps to run before building the docker image.
+    type: steps
+    default: []
+
+  after-build:
+    description: Optional steps to run after building the docker image.
+    type: steps
+    default: []
+
+steps:
+  - checkout
+  - setup_remote_docker
+  # - when:
+  #     name: Run after_checkout lifecycle hook steps.
+  #     condition: << parameters.after-checkout >>
+  #     steps: << parameters.after-checkout >>
+  # - confirm-registry:
+  #     registry: << parameters.registry >>
+  #     registry-login: << parameters.registry-login >>
+  #     registry-password: << parameters.registry-password >>
+  #     aws-ecr: << parameters.aws-ecr >>
+  # - when:
+  #     name: Run before_build lifecycle hook steps.
+  #     condition: << parameters.before-build >>
+  #     steps: << parameters.before-build >>
+  # - build:
+  #     dockerfile: << parameters.dockerfile >>
+  #     path: << parameters.path >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.tag-annotation >><< parameters.tag >>
+  #     registry: << parameters.registry >>
+  #     extra-build-args: << parameters.extra-build-args >>
+  # - when:
+  #     name: perform CIS Docker Benchmark section 4 scan
+  #     condition: << parameters.cis-docker-image-scan >>
+  #     steps:
+  #       - cis-scan:
+  #           dockerfile: << parameters.dockerfile >>
+  # - when:
+  #     name: Perform snyk cve scan
+  #     condition: << parameters.docker-cve-scan >>
+  #     requires:
+  #       - build
+  #     steps:
+  #       - cve-scan:
+  #           registry: << parameters.registry >>
+  #           image: << parameters.image >>
+  #           tag: << parameters.tag-annotation >><< parameters.tag >>
+  #           dockerfile: << parameters.dockerfile >>
+  #           severity-threshold: << parameters.severity-threshold >>
+  #           snyk-organization: << parameters.snyk-organization >>
+  #           snyk-token: << parameters.snyk-token >>
+  #           skip-base-image: << parameters.skip-base-image >>
+  # - when:
+  #     name: perform bats container configuration test
+  #     condition: << parameters.bats-test >>
+  #     requires:
+  #       - build
+  #     steps:
+  #       - bats:
+  #           registry: << parameters.registry >>
+  #           image: << parameters.image >>
+  #           tag: << parameters.tag-annotation >><< parameters.tag >>
+  #           container-name: << parameters.container-name >>
+  #           entry-point: << parameters.entry-point >>
+  #           test-path: << parameters.test-path >>
+  # - when:
+  #     name: Run after_build lifecycle hook steps.
+  #     condition: << parameters.after-build >>
+  #     steps: << parameters.after-build >>
+  # - push:
+  #     registry: << parameters.registry >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.tag-annotation >><< parameters.tag >>

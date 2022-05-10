@@ -4,7 +4,7 @@ description: python, non-security static code analysis
 
 executor:
   name: circleci-python-builder
-  image: << parameters.executor-image >>
+  executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 

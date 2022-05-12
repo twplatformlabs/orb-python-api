@@ -75,16 +75,20 @@ steps:
       name: Run after_checkout lifecycle hook steps.
       condition: << parameters.after-checkout >>
       steps: << parameters.after-checkout >>
-  - when:
-      name: Setup virtual environment
-      condition:
-        not:
-          equal: [ "none", << parameters.virtualenv >> ]
-      steps:
-          - python-env:
-              virtualenv: << parameters.virtualenv >>
-              install-dev: << parameters.install-dev >>
-
+  # - when:
+  #     name: Setup virtual environment
+  #     condition:
+  #       not:
+  #         equal: [ "none", << parameters.virtualenv >> ]
+  #     steps:
+  #         - python-env:
+  #             virtualenv: << parameters.virtualenv >>
+  #             install-dev: << parameters.install-dev >>
+  - run:
+      name: test other package install method
+      command: |
+        pipenv lock -r > requirements.txt
+        pip install -r requirements.txt
   - lint:
       lint-path: << parameters.lint-path >>
       virtualenv: << parameters.virtualenv >>

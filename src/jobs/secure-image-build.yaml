@@ -1,10 +1,13 @@
 # src/jobs/secure-image-build.yaml
 
-description: Development build and release of oci compatable image
+description: |
+  Secure oci compatible image build from dockerfile.
+
+  Currently supports Snyk for cve scanning. Use after-build steps to implement other tools.
 
 executor:
   name: circleci-python-builder
-  image: << parameters.executor-image >>
+  executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
@@ -18,7 +21,7 @@ parameters:
   executor-image:
     description: specify machine executor
     type: string
-    default: twdps/circleci-executor-builder:alpine-stable
+    default: twdps/circleci-python-builder:alpine-stable
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
@@ -95,11 +98,6 @@ parameters:
     type: boolean
     default: false
 
-  cis-docker-image-scan:
-    description: perform CIS Docker Benchmark Section 4 assessment
-    type: boolean
-    default: false
-
   bats-test:
     description: Run container configuration check bats test
     type: boolean
@@ -127,11 +125,6 @@ parameters:
     type: string
     default: ""
 
-  after-checkout:
-    description: Optional steps to run after checking out the code.
-    type: steps
-    default: []
-
   before-build:
     description: Optional steps to run before building the docker image.
     type: steps
@@ -145,65 +138,55 @@ parameters:
 steps:
   - checkout
   - setup_remote_docker
-  # - when:
-  #     name: Run after_checkout lifecycle hook steps.
-  #     condition: << parameters.after-checkout >>
-  #     steps: << parameters.after-checkout >>
-  # - confirm-registry:
-  #     registry: << parameters.registry >>
-  #     registry-login: << parameters.registry-login >>
-  #     registry-password: << parameters.registry-password >>
-  #     aws-ecr: << parameters.aws-ecr >>
-  # - when:
-  #     name: Run before_build lifecycle hook steps.
-  #     condition: << parameters.before-build >>
-  #     steps: << parameters.before-build >>
-  # - build:
-  #     dockerfile: << parameters.dockerfile >>
-  #     path: << parameters.path >>
-  #     image: << parameters.image >>
-  #     tag: << parameters.tag-annotation >><< parameters.tag >>
-  #     registry: << parameters.registry >>
-  #     extra-build-args: << parameters.extra-build-args >>
-  # - when:
-  #     name: perform CIS Docker Benchmark section 4 scan
-  #     condition: << parameters.cis-docker-image-scan >>
-  #     steps:
-  #       - cis-scan:
-  #           dockerfile: << parameters.dockerfile >>
-  # - when:
-  #     name: Perform snyk cve scan
-  #     condition: << parameters.docker-cve-scan >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - cve-scan:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           dockerfile: << parameters.dockerfile >>
-  #           severity-threshold: << parameters.severity-threshold >>
-  #           snyk-organization: << parameters.snyk-organization >>
-  #           snyk-token: << parameters.snyk-token >>
-  #           skip-base-image: << parameters.skip-base-image >>
-  # - when:
-  #     name: perform bats container configuration test
-  #     condition: << parameters.bats-test >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - bats:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           container-name: << parameters.container-name >>
-  #           entry-point: << parameters.entry-point >>
-  #           test-path: << parameters.test-path >>
-  # - when:
-  #     name: Run after_build lifecycle hook steps.
-  #     condition: << parameters.after-build >>
-  #     steps: << parameters.after-build >>
-  # - push:
-  #     registry: << parameters.registry >>
-  #     image: << parameters.image >>
-  #     tag: << parameters.tag-annotation >><< parameters.tag >>
+  - when:
+      name: Run before_build lifecycle hook steps.
+      condition: << parameters.before-build >>
+      steps: << parameters.before-build >>
+  - confirm-registry:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
+      aws-ecr: << parameters.aws-ecr >>
+  - build:
+      dockerfile: << parameters.dockerfile >>
+      path: << parameters.path >>
+      image: << parameters.image >>
+      tag: << parameters.tag-annotation >><< parameters.tag >>
+      registry: << parameters.registry >>
+      extra-build-args: << parameters.extra-build-args >>
+  - when:
+      name: Perform snyk cve scan
+      condition: << parameters.docker-cve-scan >>
+      requires:
+        - build
+      steps:
+        - cve-scan:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            dockerfile: << parameters.dockerfile >>
+            severity-threshold: << parameters.severity-threshold >>
+            snyk-organization: << parameters.snyk-organization >>
+            snyk-token: << parameters.snyk-token >>
+            skip-base-image: << parameters.skip-base-image >>
+  - when:
+      name: perform bats container smoke (liveness) test
+      condition: << parameters.bats-test >>
+      requires:
+        - build
+      steps:
+        - bats:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            container-name: << parameters.container-name >>
+            entry-point: << parameters.entry-point >>
+            test-path: << parameters.test-path >>
+  - when:
+      name: Run after_build lifecycle hook steps.
+      condition: << parameters.after-build >>
+      steps: << parameters.after-build >>
+  - push:
+      registry: << parameters.registry >>
+      image: << parameters.image >>
+      tag: << parameters.tag-annotation >><< parameters.tag >>

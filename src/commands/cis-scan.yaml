@@ -3,8 +3,8 @@
 description: |
   CIS Docker Benchmarks v1.2.0, Section 4 Container Images and Build File Configuration.
 
-  Scan uses conftest, an open policy agent based tool, along with a policy statement
-  tailored to the build and release of circleci remote docker executors.
+  Scan uses conftest, an open policy agent based tool, along with a rego policy document and
+  policy decision configuration file.
 
   See <> for detailed discussion on use of conftest CIS benchmark policy and how to
   customize for your organizational policies.
@@ -18,7 +18,7 @@ parameters:
 
 steps:
   - run:
-      name: set executor-oriented section four cis docker benchmark
+      name: Confirm section 4 CIS Docker benchmark Rego policy document
       command: |
         if [[ ! -f ".conftest/cis-docker-benchmark.rego" ]]; then
           mkdir -p .conftest
@@ -175,7 +175,7 @@ steps:
         EOF
         fi
   - run:
-      name: set default cis policy if .conftest/cis-benchmark-policy.yaml is not present
+      name: Confirm organzation/team section 4 CIS benchmark policy decisions (.conftest/cis-benchmark-policy.yaml)
       command: |
         if [[ ! -f ".conftest/cis-benchmark-policy.yaml" ]]; then
           mkdir -p .conftest
@@ -198,6 +198,6 @@ steps:
         EOF
         fi
   - run:
-      name: perform cis docker benchmark assessent
+      name: perform CIS Docker Benchmark assessent
       command: |
         conftest test << parameters.dockerfile >> --policy .conftest --data .conftest

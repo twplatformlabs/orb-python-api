@@ -1,6 +1,6 @@
 # src/commands/build.yaml
 
-description: Build executor Docker image.
+description: Build oci compatible image from Dockerfile.
 
 parameters:
 
@@ -37,7 +37,7 @@ parameters:
 
 steps:
   - run:
-      name: Use Docker to build OCI image
+      name: Build executor Docker image
       command: |
         docker build \
           <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \

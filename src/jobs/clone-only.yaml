@@ -1,6 +1,9 @@
-# src/jobs/static-analysis.yaml
+# src/jobs/clone-only.yaml
 
-description: python, non-security static code analysis
+description: |
+  Launch executor, clone the repo and then fail the pipeline. This is a debug feature that
+  permits the user to experiment with the remote build process before any predefined actions
+  have taken place.
 
 executor:
   name: circleci-python-builder

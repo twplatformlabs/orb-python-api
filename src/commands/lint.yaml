@@ -1,6 +1,10 @@
 # src/commands/lint.yaml
 
-description: Run pylint against parameter target or . by default.
+description: |
+  Python API lint:
+
+  - Run pylint against lint-path. Default is  "./"
+  - Run hadolint on dockerfile. Default is "./Dockerfile"
 
 parameters:
 
@@ -9,36 +13,15 @@ parameters:
     type: string
     default: "."
 
-  virtualenv:
-    description: run lint within pipenv virtual environment
-    type: enum
-    enum: ["pipenv", "none"]
-    default: "none"
-
   dockerfile:
     description: Name of dockerfile
     type: string
     default: Dockerfile
 
 steps:
-  - when:
-      name: Use standard pipenv virtual env configuration
-      condition:
-        equal: [ "pipenv", << parameters.virtualenv >> ]
-      steps:
-        - run:
-            name: Run pylint
-            command: pipenv run pylint << parameters.lint-path >>
-  - when:
-      name: No virtual env configuration
-      condition:
-        equal: [  "none", << parameters.virtualenv >> ]
-      steps:
-        - run:
-            name: Run pylint
-            command: pylint << parameters.lint-path >>
   - run:
-      name: hadolint Dockerfile
-      command: |
-        echo 'Run hadolint'
-        docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>
+      name: Pylint << parameters.lint-path >>
+      command: pylint << parameters.lint-path >>
+  - run:
+      name: hadolint << parameters.dockerfile >>
+      command: docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>

@@ -1,0 +1,39 @@
+# src/commands/packages.yaml
+
+description: |
+  Install python packages. Use 'install-dev: true' to include pipenv development packages.
+
+parameters:
+
+  package-manager:
+    description: Currently supports pip and pipenv
+    type: enum
+    enum: ["pipenv", "pip", "none"]
+    default: "none"
+
+  install-dev:
+    description: Install dev packages also. Not necessary if installed on executor
+    type: boolean
+    default: false
+
+steps:
+  - when:
+      name: Install python packages
+      condition:
+        not:
+          equal: [ "none", << parameters.package-manager >> ]
+      steps:
+        - when:
+            name: Generate requirements.txt from Pipfile
+            condition:
+              equal: [ "pipenv" , << parameters.package-manager >> ]
+            steps:
+              - run:
+                  name: Generate requirements.txt from Pipfile
+                  command: |
+                    pipenv lock <<#parameters.install-dev>>--dev<</parameters.install-dev>> -r > requirements.txt
+        - run:
+            name: Install packages
+            command: |
+              pip install -r requirements.txt
+              pip list

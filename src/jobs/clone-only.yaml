@@ -26,43 +26,6 @@ parameters:
     enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
-  # after-checkout:
-  #   description: Optional steps to run after checking out the code.
-  #   type: steps
-  #   default: []
-
-  # virtualenv:
-  #   description: use python virtual environment
-  #   type: enum
-  #   enum: ["pipenv", "none"]
-  #   default: "none"
-
-  # lint-path:
-  #   description: path of python files to run pylint against
-  #   type: string
-  #   default: "."
-
-  # unit-test-folder:
-  #   description: path of pytest unit test files
-  #   type: string
-  #   default: "test"
-
-  # test-coverage:
-  #   description: include test coverage analysis using python package _coverage_
-  #   type: boolean
-  #   default: false
-
-  # report-coverage:
-  #   description: Send test coverage result to report aggregator
-  #   type: enum
-  #   enum: ["codeclimate", "codacy", "none"]
-  #   default: "none"
-
-  # after-analysis:
-  #   description: Optional steps to run after static code analysis.
-  #   type: steps
-  #   default: []
-
 steps:
   - checkout
   - setup_remote_docker

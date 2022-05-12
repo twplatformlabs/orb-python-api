@@ -15,6 +15,11 @@ parameters:
     enum: ["pipenv", "none"]
     default: "none"
 
+  dockerfile:
+    description: Name of dockerfile
+    type: string
+    default: Dockerfile
+
 steps:
   - when:
       name: Use standard pipenv virtual env configuration
@@ -32,3 +37,6 @@ steps:
         - run:
             name: Run pylint
             command: pylint << parameters.lint-path >>
+  - run:
+      name: hadolint Dockerfile
+      command: docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>

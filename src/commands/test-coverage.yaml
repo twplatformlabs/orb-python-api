@@ -1,6 +1,9 @@
 # src/commands/test-coverage.yaml
 
-description: Run pytest against parameter target or . by default, optionally report
+description: |
+  Run pytest against parameter target or . by default, optionally report
+
+  - codeclimate requires CC_TEST_REPORTER_ID to be available in the environment
 
 parameters:
 

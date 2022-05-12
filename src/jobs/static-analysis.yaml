@@ -53,6 +53,11 @@ parameters:
     enum: ["codeclimate", "none"]
     default: "none"
 
+  dockerfile:
+    description: Name of dockerfile
+    type: string
+    default: Dockerfile
+
   after-analysis:
     description: Optional steps to run after static code analysis.
     type: steps

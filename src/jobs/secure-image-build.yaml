@@ -6,8 +6,8 @@ description: |
   Currently supports Snyk for cve scanning. Use after-build steps to implement other tools.
 
 executor:
-  name: circleci-python-builder
-  executor-image: << parameters.executor-image >>
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
   resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
@@ -18,15 +18,15 @@ parameters:
     type: string
     default: /bin/sh -eo pipefail
 
-  executor-image:
+  executor-machine:
     description: specify machine executor
     type: string
-    default: twdps/circleci-python-builder:stable
+    default: ubuntu-2004:202201-02
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
     type: enum
-    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    enum: [medium, large, xlarge, 2xlarge]
     default: medium
 
   registry:

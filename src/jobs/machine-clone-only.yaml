@@ -1,0 +1,37 @@
+# src/jobs/clone-only.yaml
+
+description: |
+  Launch executor, clone the repo and then fail the pipeline. This is a debug feature that
+  permits the user to experiment with the remote build process before any predefined actions
+  have taken place.
+
+executor:
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
+  resource-class: << parameters.executor-resource-class >>
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    type: string
+    default: /bin/sh -eo pipefail
+
+  executor-machine:
+    description: specify machine executor
+    type: string
+    default: ubuntu-2004:202201-02
+
+  executor-resource-class:
+    description: specify executor resource class. Default is medium.
+    type: enum
+    enum: [medium, large, xlarge, 2xlarge]
+    default: medium
+
+steps:
+  - checkout
+  - setup_remote_docker
+  - run:
+      name: force fail in order to debug job steps
+      command: exit 1

@@ -1,0 +1,18 @@
+# src/commands/configure-machine.yaml
+
+description: |
+  Install additional tools on standard circleci ubuntu machine executor.
+
+steps:
+  - run:
+      name: install secrethub
+      command: |
+        curl -sLJO https://deb.secrethub.io/amd64
+        sudo dpkg -i secrethub-cli-amd64.deb
+        rm secrethub-cli-amd64.deb
+  - run:
+      name: install snyk
+      command: npm install -g snyk
+  - run:
+      name: install inspec
+      command: |

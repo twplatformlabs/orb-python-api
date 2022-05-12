@@ -73,7 +73,7 @@ parameters:
     type: string
     default: ""
 
-  docker-cve-scan:
+  image-cve-scan:
     description: perform snyk.io docker cve scan
     type: boolean
     default: false
@@ -98,25 +98,15 @@ parameters:
     type: boolean
     default: false
 
-  bats-test:
-    description: Run container configuration check bats test
-    type: boolean
-    default: false
-
-  container-name:
-    description: name for running container
+  health-url:
+    description: health or liveness
     type: string
-    default: container-test
+    default: ""
 
-  entry-point:
-    description: name of shell ( bash | ash | etc)
+  port-definition:
+    description: docker run -p parameters
     type: string
-    default: /bin/bash
-
-  test-path:
-    description: Name of folder with tests
-    type: string
-    default: test
+    default: ""
 
   extra-build-args:
     description: >
@@ -156,7 +146,7 @@ steps:
       extra-build-args: << parameters.extra-build-args >>
   - when:
       name: Perform snyk cve scan
-      condition: << parameters.docker-cve-scan >>
+      condition: << parameters.image-cve-scan >>
       requires:
         - build
       steps:
@@ -171,17 +161,16 @@ steps:
             skip-base-image: << parameters.skip-base-image >>
   - when:
       name: perform bats container smoke (liveness) test
-      condition: << parameters.bats-test >>
+      condition: << parameters.health-url >>
       requires:
         - build
       steps:
-        - bats:
+        - liveness:
             registry: << parameters.registry >>
             image: << parameters.image >>
             tag: << parameters.tag-annotation >><< parameters.tag >>
-            container-name: << parameters.container-name >>
-            entry-point: << parameters.entry-point >>
-            test-path: << parameters.test-path >>
+            port-definition: << parameters.port-definition >>
+            health-url: << parameters.health-url>>
   - when:
       name: Run after_build lifecycle hook steps.
       condition: << parameters.after-build >>

@@ -21,25 +21,20 @@ parameters:
     type: string
     default: dev.${CIRCLE_SHA1:0:7}
 
-  container-name:
-    description: name for running container
+  port-definition:
+    description: docker run -p parameters
     type: string
-    default: container-test
+    default: ""
 
-  entry-point:
-    description: name of shell ( bash | ash | etc )
+  health-url:
+    description: health or liveness url
     type: string
-    default: /bin/bash
-
-  test-path:
-    description: Name of folder with bats tests
-    type: string
-    default: test
+    default: ""
 
 steps:
   - run:
       name: run image to be tested
-      command: docker run -it -d --name << parameters.container-name >> --entrypoint << parameters.entry-point >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+      command: docker run -it -d -p  << parameters.port-definition >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
   - run:
-      name: run bats test
-      command: bats << parameters.test-path >>
+      name: curl health endpoint url
+      command: curl << parameters.health-url >>

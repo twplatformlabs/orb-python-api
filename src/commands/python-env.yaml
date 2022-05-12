@@ -22,8 +22,8 @@ steps:
         equal: [ "pipenv" , << parameters.virtualenv >> ]
       steps:
         - run:
-            name: Create system venv and install dev packages
+            name: install required packages
             command: |
-              PIPENV_VENV_IN_PROJECT=1 pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>> --skip-lock --verbose
-              echo "PATH=/.venv/bin:\$PATH" >> $BASH_ENV
-              pipenv run pip list
+              pipenv lock <<#parameters.install-dev>>--dev<</parameters.install-dev>> -r > requirements.txt
+              pip install -r requirements.txt
+              pip list

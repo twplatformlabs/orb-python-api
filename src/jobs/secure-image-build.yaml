@@ -21,7 +21,7 @@ parameters:
   executor-image:
     description: specify machine executor
     type: string
-    default: twdps/circleci-python-builder:alpine-stable
+    default: twdps/circleci-python-builder:stable
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.

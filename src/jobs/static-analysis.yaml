@@ -37,6 +37,11 @@ parameters:
     enum: ["pipenv", "none"]
     default: "none"
 
+  install-dev:
+    description: Install dev packages also. Not necessary if installed on executor
+    type: boolean
+    default: false
+
   lint-path:
     description: path of python files to run pylint against
     type: string
@@ -78,6 +83,7 @@ steps:
       steps:
           - python-env:
               virtualenv: << parameters.virtualenv >>
+              install-dev: << parameters.install-dev >>
 
   - lint:
       lint-path: << parameters.lint-path >>

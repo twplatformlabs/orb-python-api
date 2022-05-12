@@ -3,7 +3,70 @@
 description: |
   Install additional tools on standard circleci ubuntu machine executor.
 
+parameters:
+
+  python-version:
+    description: version of python to install. 3 and above.
+    type: string
+
+  setuptools-version:
+    type: string
+
+  wheel-version:
+    type: string
+
+  pipenv-version:
+    type: string
+
+  pylint-version:
+    type: string
+
+  pytest-version:
+    type: string
+
+  coverage-version:
+    type: string
+
+  invoke-version:
+    type: string
+
+  requests-version:
+    type: string
+
+  jinja2-version:
+    type: string
+
+
 steps:
+  - run:
+      name: install python version via pyenv
+      command: |
+        pyenv install << parameters.python-version >>
+        python3 -m ensurepip
+        rm -r /usr/lib/python*/ensurepip
+        pip3 install --upgrade pip
+        if [ ! -e /usr/bin/pip ]; then sudo ln -s /usr/bin/pip3 /usr/bin/pip ; fi
+        ln -s /usr/bin/pydoc3 /usr/bin/pydoc
+        ln -s /usr/bin/python3 /usr/bin/python
+        ln -s /usr/bin/python3-config /usr/bin/python-config
+  - run:
+      name: install default python packages
+      command: |
+        pip install \
+            setuptools==<< parameters.setuptools-version >> \
+            wheel==<< parameters.wheel-version >> \
+            pipenv==<< parameters.pipenv-version >> \
+            pylint==<< parameters.pylint-version >> \
+            pytest==<< parameters.pytest-version >> \
+            coverage==<< parameters.coverage-version >> \
+            invoke==<< parameters.invoke-version >> \
+            requests==<< parameters.requests-version >> \
+            jinja2==<< parameters.jinja2-version >>
+  - run:
+      name: install codeclimate test coverage report-coverage
+      command: |
+        bash -c "curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > /usr/local/bin/cc-test-reporter"
+        chmod +x /usr/local/bin/cc-test-reporter
   - run:
       name: install secrethub
       command: |
@@ -13,6 +76,3 @@ steps:
   - run:
       name: install snyk
       command: npm install -g snyk
-  - run:
-      name: install inspec
-      command: |

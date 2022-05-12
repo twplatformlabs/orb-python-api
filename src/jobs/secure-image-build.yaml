@@ -29,6 +29,37 @@ parameters:
     enum: [medium, large, xlarge, 2xlarge]
     default: medium
 
+  python-version:
+    description: version of python to install. 3 and above.
+    type: string
+  setuptools-version:
+    type: string
+    default: "62.1.0"
+  wheel-version:
+    type: string
+    default: "0.37.1"
+  pipenv-version:
+    type: string
+    default: "2022.4.21"
+  pylint-version:
+    type: string
+    default: "2.13.7"
+  pytest-version:
+    type: string
+    default: "7.1.2"
+  coverage-version:
+    type: string
+    default: "6.3.2"
+  invoke-version:
+    type: string
+    default: "1.7.0"
+  requests-version:
+    type: string
+    default: "2.27.1"
+  jinja2-version:
+    type: string
+    default: "3.1.1"
+
   registry:
     description: Name of registry
     type: string
@@ -127,7 +158,17 @@ parameters:
 
 steps:
   - checkout
-  - setup_remote_docker
+  - configure-machine:
+      python-version: << parameters.python-version >>
+      setuptools-version: << parameters.setuptools-version >>
+      wheel-version: << parameters.wheel-version >>
+      pipenv-version: << parameters.pipenv-version >>
+      pylint-version: << parameters.pylint-version >>
+      pytest-version: << parameters.pytest-version >>
+      coverage-version: << parameters.coverage-version >>
+      invoke-version: << parameters.invoke-version >>
+      requests-version: << parameters.requests-version >>
+      jinja2-version: << parameters.jinja2-version >>
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>

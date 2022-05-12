@@ -31,7 +31,6 @@ parameters:
 
 steps:
   - checkout
-  - setup_remote_docker
   - run:
       name: force fail in order to debug job steps
       command: exit 1

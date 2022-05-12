@@ -58,6 +58,11 @@ parameters:
     type: string
     default: Dockerfile
 
+  cis-docker-image-scan:
+    description: perform CIS Docker Benchmark Section 4 assessment
+    type: boolean
+    default: false
+
   after-analysis:
     description: Optional steps to run after static code analysis.
     type: steps
@@ -83,9 +88,15 @@ steps:
   - lint:
       lint-path: << parameters.lint-path >>
       virtualenv: << parameters.virtualenv >>
+      dockerfile: << parameters.dockerfile >>
   - test-coverage:
       report-coverage: << parameters.report-coverage >>
-
+  - when:
+      name: perform CIS Docker Benchmark section 4 scan
+      condition: << parameters.cis-docker-image-scan >>
+      steps:
+        - cis-scan:
+            dockerfile: << parameters.dockerfile >>
   - when:
       name: Run after after analysis lifecycle hook steps.
       condition: << parameters.after-analysis >>

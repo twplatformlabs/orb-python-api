@@ -47,26 +47,16 @@ parameters:
     type: string
     default: "."
 
-  # unit-test-folder:
-  #   description: path of pytest unit test files
-  #   type: string
-  #   default: "test"
+  report-coverage:
+    description: report test coverage
+    type: enum
+    enum: ["codeclimate", "none"]
+    default: "none"
 
-  # test-coverage:
-  #   description: include test coverage analysis using python package _coverage_
-  #   type: boolean
-  #   default: false
-
-  # report-coverage:
-  #   description: Send test coverage result to report aggregator
-  #   type: enum
-  #   enum: ["codeclimate", "codacy", "none"]
-  #   default: "none"
-
-  # after-analysis:
-  #   description: Optional steps to run after static code analysis.
-  #   type: steps
-  #   default: []
+  after-analysis:
+    description: Optional steps to run after static code analysis.
+    type: steps
+    default: []
 
 steps:
   - checkout
@@ -88,13 +78,10 @@ steps:
   - lint:
       lint-path: << parameters.lint-path >>
       virtualenv: << parameters.virtualenv >>
-  # - unit-test:
-  #     unit-test-folder: << parameters.unit-test-folder >>
-  #     venv: << parameters.virtualenv >>
-  #     test-coverage: << parameters.test-coverage >>
-  #     report-coverage: << parameters.report-coverage >>
+  - test-coverage:
+      report-coverage: << parameters.report-coverage >>
 
-  # - when:
-  #     name: Run after after analysis lifecycle hook steps.
-  #     condition: << parameters.after-analysis >>
-  #     steps: << parameters.after-analysis >>
+  - when:
+      name: Run after after analysis lifecycle hook steps.
+      condition: << parameters.after-analysis >>
+      steps: << parameters.after-analysis >>

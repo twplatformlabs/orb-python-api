@@ -39,4 +39,6 @@ steps:
             command: pylint << parameters.lint-path >>
   - run:
       name: hadolint Dockerfile
-      command: docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>
+      command: |
+        echo 'Run hadolint'
+        docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>

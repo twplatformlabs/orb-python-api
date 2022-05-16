@@ -104,6 +104,17 @@ parameters:
     type: string
     default: ""
 
+  package-manager:
+    description: Currently supports pip and pipenv
+    type: enum
+    enum: ["pipenv", "pip", "none"]
+    default: "none"
+
+  install-dev:
+    description: Install dev packages also. Not necessary if installed on executor
+    type: boolean
+    default: false
+
   image-cve-scan:
     description: perform snyk.io docker cve scan
     type: boolean
@@ -174,6 +185,9 @@ steps:
       invoke-version: << parameters.invoke-version >>
       requests-version: << parameters.requests-version >>
       jinja2-version: << parameters.jinja2-version >>
+  - packages:
+      package-manager: << parameters.package-manager >>
+      install-dev: << parameters.install-dev >>
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>

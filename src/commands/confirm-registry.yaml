@@ -89,4 +89,4 @@ steps:
             name: Confirm Docker registry login
             command: |
               echo 'write to .docker/config.json is secure in ephemeral runtime environment'
-              echo ${<< parameters.registry-password >>} | sudo bash -c "docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>"
+              echo ${<< parameters.registry-password >>} | docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>

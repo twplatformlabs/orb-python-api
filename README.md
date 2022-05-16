@@ -14,11 +14,7 @@ See [orb registry](https://circleci.com/developer/orbs/orb/twdps/python-api) for
 
 Features include:
 
--  
-
-Workflows assume:
-
-* Trunk based development (TBD)
-* Versioned released are triggered/managed by tagging
-
-See [this](CIS_BENCHMARK.md) documentation for customizing the cis benchmark assessment.  
+- Uses machine based executor for build
+- Can provide custom job steps; before-build, after-build, after-push
+- static analysis based on: pylint, pytest, hadolint
+- supports codeclimate test reporting

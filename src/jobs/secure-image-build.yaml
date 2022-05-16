@@ -156,6 +156,11 @@ parameters:
     type: steps
     default: []
 
+  after-push:
+    description: Optional steps to run after publishing the docker image.
+    type: steps
+    default: []
+
 steps:
   - checkout
   - configure-machine:
@@ -220,3 +225,7 @@ steps:
       registry: << parameters.registry >>
       image: << parameters.image >>
       tag: << parameters.tag-annotation >><< parameters.tag >>
+  - when:
+      name: Run after_push lifecycle hook steps.
+      condition: << parameters.after-push >>
+      steps: << parameters.after-push >>

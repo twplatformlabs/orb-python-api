@@ -37,7 +37,7 @@ parameters:
 
 steps:
   - run:
-      name: Build executor Docker image
+      name: Use Docker to build oci image
       command: |
         docker build \
           <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \

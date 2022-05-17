@@ -34,7 +34,7 @@ parameters:
 steps:
   - run:
       name: run image to be tested
-      command: docker run -it -d -p  << parameters.port-definition >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+      command: docker run -it -d -p  << parameters.port-definition >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >> && sleep 3
   - run:
       name: curl health endpoint url
       command: curl << parameters.health-url >>

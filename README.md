@@ -12,7 +12,7 @@
 
 See [orb registry](https://circleci.com/developer/orbs/orb/twdps/python-api) for detailed usage examples
 
-Features include:  
+Features include:
 
 - Uses machine based executor for build
 - Can provide custom job steps; before-build, after-build, after-push

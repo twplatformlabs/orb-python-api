@@ -21,13 +21,13 @@ parameters:
     default: twdps/circleci-python-builder:stable
 
   executor-resource-class:
-    description: specify executor resource class. Default is medium.
+    description: specify executor resource class. Default is medium
     type: enum
     enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
   after-checkout:
-    description: Optional steps to run after checking out the code.
+    description: Optional steps to run after checking out the code
     type: steps
     default: []
 
@@ -64,7 +64,7 @@ parameters:
     default: false
 
   after-analysis:
-    description: Optional steps to run after static code analysis.
+    description: Optional steps to run after static code analysis
     type: steps
     default: []
 
@@ -72,7 +72,7 @@ steps:
   - checkout
   - setup_remote_docker
   - when:
-      name: Run after_checkout lifecycle hook steps.
+      name: Run after_checkout lifecycle hook steps
       condition: << parameters.after-checkout >>
       steps: << parameters.after-checkout >>
   - packages:
@@ -90,6 +90,6 @@ steps:
         - cis-scan:
             dockerfile: << parameters.dockerfile >>
   - when:
-      name: Run after after analysis lifecycle hook steps.
+      name: Run after after analysis lifecycle hook steps
       condition: << parameters.after-analysis >>
       steps: << parameters.after-analysis >>

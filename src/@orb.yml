@@ -12,7 +12,7 @@ description: |
   - use machine executor, installs latest release versions of build/test tools (pending)
   - support for private dtr compatible registries and AWS ECR (pending)
   - support for customer dockerfile path/name, tags, tag annotations
-  - snyk cve scanning
+  - snyk CVE scanning
   - hadolint of dockerfile
   - support for conftest CIS Docker benchmarks for section 4 (Docker image)
   - support for bats-based image smoke testing

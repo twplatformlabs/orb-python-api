@@ -31,7 +31,7 @@ steps:
               - run:
                   name: Generate requirements.txt from Pipfile
                   command: |
-                    pipenv lock <<#parameters.install-dev>>--dev<</parameters.install-dev>> -r > requirements.txt
+                    pipenv requirements <<#parameters.install-dev>>--dev<</parameters.install-dev>> > requirements.txt
         - run:
             name: Install packages
             command: |

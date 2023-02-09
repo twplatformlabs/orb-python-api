@@ -163,17 +163,17 @@ parameters:
     default: ""
 
   before-build:
-    description: Optional steps to run before building the docker image.
+    description: Optional steps to run before building the docker image
     type: steps
     default: []
 
   after-build:
-    description: Optional steps to run after building the docker image.
+    description: Optional steps to run after building the docker image
     type: steps
     default: []
 
   after-push:
-    description: Optional steps to run after publishing the docker image.
+    description: Optional steps to run after publishing the docker image
     type: steps
     default: []
 

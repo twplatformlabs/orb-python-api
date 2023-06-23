@@ -21,7 +21,7 @@ parameters:
   executor-machine:
     description: specify machine executor
     type: string
-    default: ubuntu-2004:202201-02
+    default: ubuntu-2204:2023.04.2
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
@@ -34,31 +34,31 @@ parameters:
     type: string
   setuptools-version:
     type: string
-    default: "62.1.0"
+    default: "68.0.0"
   wheel-version:
     type: string
-    default: "0.37.1"
+    default: "0.40.0"
   pipenv-version:
     type: string
-    default: "2022.4.21"
+    default: "2023.6.18"
   pylint-version:
     type: string
-    default: "2.13.7"
+    default: "2.17.4"
   pytest-version:
     type: string
-    default: "7.1.2"
+    default: "7.4.0"
   coverage-version:
     type: string
-    default: "6.3.2"
+    default: "7.2.7"
   invoke-version:
     type: string
-    default: "1.7.0"
+    default: "2.1.3"
   requests-version:
     type: string
-    default: "2.27.1"
+    default: "2.31.0"
   jinja2-version:
     type: string
-    default: "3.1.1"
+    default: "3.1.2"
 
   registry:
     description: Name of registry

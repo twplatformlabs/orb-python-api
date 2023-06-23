@@ -1,0 +1,27 @@
+# src/commands/tag.yaml
+
+description: Pull docker image from registry
+
+parameters:
+
+  registry:
+    description: Name of registry
+    type: string
+    default: docker.io
+
+  image:
+    description: Name of image
+    type: string
+
+  current-tag:
+    description: existing tag
+    type: string
+
+  new-tag:
+    description: Value for new tag
+    type: string
+
+steps:
+  - run:
+      name: Tag a local docker image
+      command: docker tag << parameters.registry >>/<< parameters.image >>:<< parameters.current-tag >> << parameters.registry >>/<< parameters.image >>:<< parameters.new-tag >>

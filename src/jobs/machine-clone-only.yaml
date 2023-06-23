@@ -16,12 +16,12 @@ parameters:
   shell:
     description: default shell invocation. Override to support different shells or tools like secrethub.io
     type: string
-    default: /bin/sh -eo pipefail
+    default: /bin/bash -eo pipefail
 
   executor-machine:
     description: specify machine executor
     type: string
-    default: ubuntu-2004:202201-02
+    default: ubuntu-2204:2023.04.2
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.

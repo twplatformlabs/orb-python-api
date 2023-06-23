@@ -1,0 +1,100 @@
+# src/jobs/publish-image.yaml
+
+description: |
+  Tags existing image in DTR. Assumes that the image exists from a prior secure-image-build.  
+
+executor:
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
+  resource-class: << parameters.executor-resource-class >>
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    type: string
+    default: /bin/bash -eo pipefail
+
+  executor-machine:
+    description: specify machine executor
+    type: string
+    default: ubuntu-2004:202201-02
+
+  executor-resource-class:
+    description: specify executor resource class. Default is medium.
+    type: enum
+    enum: [medium, large, xlarge, 2xlarge]
+    default: medium
+
+  registry-login:
+    description: username for reigstry access
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: password for registry access
+    type: env_var_name
+    default: DOCKER_PASSWORD
+
+  registry:
+    description: Name of registry
+    type: string
+    default: docker.io
+
+  image:
+    description: Name of image
+    type: string
+
+  pull-tag:
+    description: Value for dev build tag
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  publish-tag:
+    description: Value for published release version
+    type: string
+    default: $CIRCLE_TAG
+
+  tag-annotation:
+    description: Additional text appendc to semantic version tag
+    type: string
+    default: ""
+
+  before-push:
+    description: Optional steps to run before building the docker image
+    type: steps
+    default: []
+
+  after-push:
+    description: Optional steps to run after publishing the docker image
+    type: steps
+    default: []
+
+steps:
+  - checkout
+  - confirm-registry:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
+  - pull:
+      registry: << parameters.registry >>
+      image: << parameters.image >>
+      tag: << parameters.pull-tag >>
+  - tag:
+      registry: << parameters.registry >>
+      image: << parameters.image >>
+      current-tag: << parameters.pull-tag >>
+      new-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+  - when:
+      name: Run before_push lifecycle hook steps.
+      condition: << parameters.before-push >>
+      steps: << parameters.before-push >>
+  - push:
+      registry: << parameters.registry >>
+      image: << parameters.image >>
+      tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+  - when:
+      name: Run after_push lifecycle hook steps.
+      condition: << parameters.after-push >>
+      steps: << parameters.after-push >>

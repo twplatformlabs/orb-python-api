@@ -163,6 +163,11 @@ parameters:
     type: string
     default: ""
 
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
+
   before-build:
     description: Optional steps to run before building the docker image
     type: steps

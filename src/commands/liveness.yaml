@@ -21,6 +21,11 @@ parameters:
     type: string
     default: dev.${CIRCLE_SHA1:0:7}
 
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
+
   port-definition:
     description: docker run -p parameters
     type: string
@@ -40,7 +45,7 @@ steps:
   - run:
       name: run image to be tested
       command: |
-        docker run -it -d -p  << parameters.port-definition >> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+        docker run -it -d -p << parameters.port-definition >> <<#parameters.docker-run-arguments>>-e <<parameters.docker-run-arguments>> <</parameters.docker-run-arguments>><< parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
         sleep << parameters.startup-delay >>
   - run:
       name: curl health endpoint url

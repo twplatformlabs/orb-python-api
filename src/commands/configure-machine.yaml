@@ -8,6 +8,7 @@ parameters:
   python-version:
     description: version of python to install. 3 and above.
     type: string
+    default: ""
 
   setuptools-version:
     type: string
@@ -38,9 +39,12 @@ parameters:
 
 
 steps:
-  - run:
-      name: install python version via pyenv
-      command: pyenv install << parameters.python-version >>
+  - when:
+      condition: << parameters.python-version >>
+      steps:
+        - run:
+            name: install python version via pyenv
+            command: pyenv install << parameters.python-version >>
   - run:
       name: install default python packages
       command: |

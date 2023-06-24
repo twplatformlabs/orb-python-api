@@ -32,6 +32,7 @@ parameters:
   python-version:
     description: version of python to install. 3 and above.
     type: string
+    default: ""
   setuptools-version:
     type: string
     default: "68.0.0"

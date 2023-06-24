@@ -45,7 +45,7 @@ steps:
   - run:
       name: run image to be tested
       command: |
-        docker run -it -d -p << parameters.port-definition >> <<#parameters.docker-run-arguments>>-e <<parameters.docker-run-arguments>> <</parameters.docker-run-arguments>><< parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+        docker run -it -d -p << parameters.port-definition >> <<#parameters.docker-run-arguments>><<parameters.docker-run-arguments>><</parameters.docker-run-arguments>> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
         sleep << parameters.startup-delay >>
   - run:
       name: curl health endpoint url

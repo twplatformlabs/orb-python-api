@@ -243,6 +243,7 @@ steps:
             port-definition: << parameters.port-definition >>
             health-url: << parameters.health-url>>
             startup-delay: << parameters.startup-delay >>
+            docker-run-arguments: << parameters.docker-run-arguments >>
   - when:
       name: Run after_build lifecycle hook steps.
       condition: << parameters.after-build >>

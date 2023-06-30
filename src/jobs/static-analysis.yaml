@@ -49,7 +49,7 @@ parameters:
     default: requirements-dev.txt
 
   lint-path:
-    description: Path used for pylint. Set to None to skip.
+    description: Path used for pylint. Set to none to skip.
     type: string
     default: "."
 

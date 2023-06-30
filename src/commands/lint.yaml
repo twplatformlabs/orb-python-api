@@ -3,7 +3,7 @@
 description: |
   pylint:
 
-  - Run pylint against lint-path. Set to "None" to skip. Default is  "."
+  - Run pylint against lint-path. Set to "none" to skip. Default is  "."
   - Specify additional pylint options using parameters.pylint-options.
 
 
@@ -22,7 +22,7 @@ parameters:
 steps:
   - unless:
       condition:
-        equal: [ "None" , << parameters.lint-path >> ]
+        equal: [ "none" , << parameters.lint-path >> ]
       steps:
         - run:
             name: Pylint << parameters.lint-path >>

@@ -5,88 +5,38 @@ description: |
   $DOCKER_PASSWORD environment variables will be used to confirm docker login
   permissions.
 
-  To use AWS ECR, include parameter `aws-ecr: true` and set the appropriate
-  environment variables.
-
-  AWS_ACCESS_KEY_ID
-  AWS_SECRET_ACCESS_KEY
-  AWS_REGION
-  AWS_ASSUME_ROLE  # role_arn of standard assume role provider if required
-
 parameters:
 
   registry:
-    description: Docker registry
+    description: Docker registry.
     type: string
     default: docker.io
 
   registry-login:
-    description: username for reigstry access
+    description: Username for reigstry access.
     type: env_var_name
     default: DOCKER_LOGIN
 
   registry-password:
-    description: password for registry access
+    description: Password for registry access.
     type: env_var_name
     default: DOCKER_PASSWORD
 
-  aws-ecr:
-    description: use aws elastic container registry
-    type: boolean
-    default: false
-
 steps:
-  - when:
-      name: Using AWS Elastic Container Registry
-      condition: << parameters.aws-ecr >>
-      steps:
-        - run:
-            name: Assume AWS role and obtain ecr get-login-password
-            command: |
-              mkdir -p ~/.aws
-              cat \<<EOF > ~/.aws/credentials
-              [default]
-              aws_access_key_id=${AWS_ACCESS_KEY_ID}
-              aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}
-              region=${AWS_DEFAULT_REGION}
-              EOF
-              if [[ ! -z "$AWS_ASSUME_ROLE" ]]; then
-                aws sts assume-role --output json --role-arn $AWS_ASSUME_ROLE --role-session-name "circleci-executor-build-pipeline" > .temp_credentials || { echo 'sts failure!' ; exit 1; }
+  - run:
+      name: Confirm Docker registry environment variables are configured and correct
+      command: |
+        if [ ! ${<< parameters.registry-login >>-} ]; then
+          echo "registry access username is not set, will not be able to push image."
+          exit 1
+        fi
 
-                ACCESS_KEY=$(cat .temp_credentials | jq -r ".Credentials.AccessKeyId")
-                SECRET_KEY=$(cat .temp_credentials | jq -r ".Credentials.SecretAccessKey")
-                SESSION_TOKEN=$(cat .temp_credentials | jq -r ".Credentials.SessionToken")
-                EXPIRATION=$(cat .temp_credentials | jq -r ".Credentials.Expiration")
-
-                cat \<<EOF > ~/.aws/credentials
-              [default]
-              aws_access_key_id=${ACCESS_KEY}
-              aws_secret_access_key=${SECRET_KEY}
-              aws_session_token=${SESSION_TOKEN}
-              region=${AWS_DEFAULT_REGION}
-              EOF
-              fi
-        - run:
-            name: Confirm ECR login
-            command: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin << parameters.registry >>
-  - unless:
-      name: Using standard registry-style credentials
-      condition: << parameters.aws-ecr >>
-      steps:
-        - run:
-            name: Confirm Docker registry environment variables are configured and correct
-            command: |
-              if [ ! ${<< parameters.registry-login >>-} ]; then
-                echo "registry access username is not set, will not be able to push image."
-                exit 1
-              fi
-
-              if [ ! ${<< parameters.registry-password >>-} ]; then
-                echo "registry access password is not set, will not be able to push image."
-                exit 1
-              fi
-        - run:
-            name: Confirm Docker registry login
-            command: |
-              echo 'write to .docker/config.json is secure in ephemeral runtime environment'
-              echo ${<< parameters.registry-password >>} | docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>
+        if [ ! ${<< parameters.registry-password >>-} ]; then
+          echo "registry access password is not set, will not be able to push image."
+          exit 1
+        fi
+  - run:
+      name: Confirm Docker registry login
+      command: |
+        echo 'write to .docker/config.json is secure in ephemeral runtime environment'
+        echo ${<< parameters.registry-password >>} | docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>

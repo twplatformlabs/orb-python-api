@@ -3,172 +3,137 @@
 description: |
   Secure oci compatible image build from dockerfile.
 
-  Currently supports Snyk for cve scanning. Use after-build steps to implement other tools.
-
 executor:
-  name: circleci-python-builder
-  executor-image: << parameters.executor-image >>
-  resource-class: << parameters.executor-resource-class >>
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
+  resource-class: << parameters.resource-class >>
 shell: << parameters.shell >>
 
 parameters:
 
   shell:
-    description: default shell invocation. Override to support different shells or tools like 1password
+    description: Shell launch configuration. Can override to support process level tool options (1password, teller).
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-image:
-    description: specify remote docker image
+  executor-machine:
+    description: circleci machine executor
     type: string
-    default: twdps/circleci-executor-builder:alpine-stable
+    default: ubuntu-2204:current
 
-  executor-resource-class:
-    description: specify executor resource class. Default is medium.
+  resource-class:
+    description: specify the resouce class for the image
     type: enum
     enum: [medium, large, xlarge, 2xlarge]
-    default: medium
 
   registry:
-    description: Name of registry
+    description: Name of DTR compatible registry. Can use private registry.
     type: string
     default: docker.io
 
   registry-login:
-    description: username for reigstry access
+    description: Username for reigstry access.
     type: env_var_name
     default: DOCKER_LOGIN
 
   registry-password:
-    description: password for registry access
+    description: Password for registry access.
     type: env_var_name
     default: DOCKER_PASSWORD
 
   dockerfile:
-    description: Name of dockerfile
+    description: Name of Dockerfile.
     type: string
     default: Dockerfile
 
-  aws-ecr:
-    description: use aws elastic container registry
-    type: boolean
-    default: false
-
   path:
-    description: Path to the directory containing your Dockerfile and build context
+    description: Path to the directory containing your Dockerfile and build context.
     type: string
     default: .
 
   image:
-    description: Name of image
+    description: Name of image.
     type: string
 
   tag:
-    description: Value for dev build tag
+    description: Value for image tag.
     type: string
     default: dev.${CIRCLE_SHA1:0:7}
 
   tag-annotation:
-    description: Additional text prepended to semantic version tag
+    description: (Optional) Additional text prepended to semantic version tag
     type: string
     default: ""
 
   extra-build-args:
     description: >
-      Extra flags to pass to docker build. For examples, see
+      (Optional) Extra flags to pass to docker build. For examples, see
       https://docs.docker.com/engine/reference/commandline/build
     type: string
     default: ""
 
-  package-manager:
-    description: Currently supports pip and pipenv
-    type: enum
-    enum: ["pipenv", "pip", "none"]
-    default: "none"
-
-  install-dev:
-    description: Install dev packages also. Not necessary if installed on executor
-    type: boolean
-    default: false
-
-  pip-requirements-filename:
-    description: name of pip requirements files
-    type: string
-    default: requirements.txt
-
-  pip-requirements-filename-dev:
-    description: name of pip development requirements files
-    type: string
-    default: requirements-dev.txt
-
-  before-build:
-    description: Optional steps to run before building the docker image
-    type: steps
-    default: []
-
-  after-build:
-    description: Optional steps to run after building the docker image
-    type: steps
-    default: []
-
-  after-push:
-    description: Optional steps to run after publishing the docker image
-    type: steps
-    default: []
-
   image-cve-scan:
-    description: perform snyk.io docker cve scan
+    description: (Ooptional) Perform Snyk docker vulnerability scan.
     type: boolean
     default: false
 
   severity-threshold:
-    description: snyk test reporting threshold
+    description: (OptionaL) Snyk test reporting threshold.
     type: string
     default: "low"
 
   snyk-organization:
-    description: Trigger Scan results related to repository associated with organization created at snyk.io
+    description: (Optional) Trigger Scan results related to repository associated with organization created at snyk.io.
     type: string
     default: ""
 
   snyk-token:
-    description: snyk.io api-token
+    description: (Optional) Snyk.io api-token. Required when imave-cve-scan is true.
     type: env_var_name
     default: SNYK_TOKEN
 
   skip-base-image:
-    description: optionally, skip performing cve scan of base image
+    description: (Optional) Skip performing cve scan of base image.
     type: boolean
     default: false
 
   health-url:
-    description: health or liveness
+    description: (Optional) API url to health test.
     type: string
     default: ""
 
   port-definition:
-    description: docker run -p parameters
+    description: (Optional) Docker run -p parameter.
     type: string
     default: ""
 
   startup-delay:
-    description: time to wait for service to startup and liveness endpoint to be available
+    description: (Optional) Time to wait for service to startup and test endpoint to be available.
     type: integer
     default: 3
 
   docker-run-arguments:
-    description: additional Docker Run arguements
+    description: (Optional) Additional Docker Run arguements.
     type: string
     default: ""
 
+  before-build:
+    description: (Optional) Steps to run before Docker build.
+    type: steps
+    default: []
+
+  after-build:
+    description: (Optional) Steps to run Docker build.
+    type: steps
+    default: []
+
+  after-push:
+    description: (Optional) Steps to run after publishing the image to registry.
+    type: steps
+    default: []
+
 steps:
   - checkout
-  - setup_remote_docker
-  - packages:
-      package-manager: << parameters.package-manager >>
-      install-dev: << parameters.install-dev >>
-      pip-requirements-filename: << parameters.pip-requirements-filename >>
-      pip-requirements-filename-dev: << parameters.pip-requirements-filename-dev >>
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>
@@ -177,7 +142,6 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
-      aws-ecr: << parameters.aws-ecr >>
   - build:
       dockerfile: << parameters.dockerfile >>
       path: << parameters.path >>
@@ -185,44 +149,44 @@ steps:
       tag: << parameters.tag-annotation >><< parameters.tag >>
       registry: << parameters.registry >>
       extra-build-args: << parameters.extra-build-args >>
-  - when:
-      name: Perform snyk cve scan
-      condition: << parameters.image-cve-scan >>
-      requires:
-        - build
-      steps:
-        - cve-scan:
-            registry: << parameters.registry >>
-            image: << parameters.image >>
-            tag: << parameters.tag-annotation >><< parameters.tag >>
-            dockerfile: << parameters.dockerfile >>
-            severity-threshold: << parameters.severity-threshold >>
-            snyk-organization: << parameters.snyk-organization >>
-            snyk-token: << parameters.snyk-token >>
-            skip-base-image: << parameters.skip-base-image >>
-  - when:
-      name: perform container smoke (liveness/readiness) test
-      condition: << parameters.health-url >>
-      requires:
-        - build
-      steps:
-        - liveness:
-            registry: << parameters.registry >>
-            image: << parameters.image >>
-            tag: << parameters.tag-annotation >><< parameters.tag >>
-            port-definition: << parameters.port-definition >>
-            health-url: << parameters.health-url>>
-            startup-delay: << parameters.startup-delay >>
-            docker-run-arguments: << parameters.docker-run-arguments >>
-  - when:
-      name: Run after_build lifecycle hook steps.
-      condition: << parameters.after-build >>
-      steps: << parameters.after-build >>
-  - push:
-      registry: << parameters.registry >>
-      image: << parameters.image >>
-      tag: << parameters.tag-annotation >><< parameters.tag >>
-  - when:
-      name: Run after_push lifecycle hook steps.
-      condition: << parameters.after-push >>
-      steps: << parameters.after-push >>
+  # - when:
+  #     name: Perform snyk cve scan
+  #     condition: << parameters.image-cve-scan >>
+  #     requires:
+  #       - build
+  #     steps:
+  #       - cve-scan:
+  #           registry: << parameters.registry >>
+  #           image: << parameters.image >>
+  #           tag: << parameters.tag-annotation >><< parameters.tag >>
+  #           dockerfile: << parameters.dockerfile >>
+  #           severity-threshold: << parameters.severity-threshold >>
+  #           snyk-organization: << parameters.snyk-organization >>
+  #           snyk-token: << parameters.snyk-token >>
+  #           skip-base-image: << parameters.skip-base-image >>
+  # - when:
+  #     name: perform container smoke (liveness/readiness) test
+  #     condition: << parameters.health-url >>
+  #     requires:
+  #       - build
+  #     steps:
+  #       - liveness:
+  #           registry: << parameters.registry >>
+  #           image: << parameters.image >>
+  #           tag: << parameters.tag-annotation >><< parameters.tag >>
+  #           port-definition: << parameters.port-definition >>
+  #           health-url: << parameters.health-url>>
+  #           startup-delay: << parameters.startup-delay >>
+  #           docker-run-arguments: << parameters.docker-run-arguments >>
+  # - when:
+  #     name: Run after_build lifecycle hook steps.
+  #     condition: << parameters.after-build >>
+  #     steps: << parameters.after-build >>
+  # - push:
+  #     registry: << parameters.registry >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.tag-annotation >><< parameters.tag >>
+  # - when:
+  #     name: Run after_push lifecycle hook steps.
+  #     condition: << parameters.after-push >>
+  #     steps: << parameters.after-push >>

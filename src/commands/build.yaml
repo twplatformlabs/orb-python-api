@@ -5,42 +5,67 @@ description: Build oci compatible image from Dockerfile.
 parameters:
 
   dockerfile:
-    description: Name of dockerfile
+    description: Name of dockerfile.
     type: string
     default: Dockerfile
 
   path:
-    description: Path to the directory containing your Dockerfile and build context
+    description: Path to the directory containing your Dockerfile and build context.
     type: string
     default: .
 
   image:
-    description: Name of image
+    description: Name of image.
     type: string
 
   tag:
-    description: Value for tag
+    description: Value for tag.
     type: string
     default: dev.${CIRCLE_SHA1:0:7}
 
   registry:
-    description: Name of registry
+    description: Name of registry.
     type: string
     default: docker.io
 
   extra-build-args:
     description: >
-      Extra flags to pass to docker build. For examples, see
+      (Optional) Extra flags to pass to docker build. For examples, see
       https://docs.docker.com/engine/reference/commandline/build
     type: string
     default: ""
 
 steps:
   - run:
-      name: Use Docker to build oci image
-      command: |
-        docker build \
-          <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \
-          -f << parameters.dockerfile >> -t \
-          << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
-          << parameters.path >>
+      name: multiarch build
+      command: exit 1
+      
+      
+      
+#       |
+#         docker buildx create --use
+
+
+# export BUILD_CMD="docker buildx build --progress plain --platform linux/amd64,linux/arm64 --push"
+# BUILD_SHA="$(echo "$CIRCLE_SHA1" | cut -c1-7)"
+# export BUILD_SHA
+
+# set -euxo pipefail
+
+# $BUILD_CMD -t "$IMAGE_NAME:latest" .
+# $BUILD_CMD -t "$IMAGE_NAME:$BUILD_SHA" .
+
+# set +u
+# if [ -n "$CIRCLE_TAG" ]; then
+#   $BUILD_CMD -t "$IMAGE_NAME:$CIRCLE_TAG" .
+# fi
+# set -u
+
+#   # - run:
+#   #     name: Use Docker to build oci image
+#   #     command: |
+#   #       docker build \
+#   #         <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \
+#   #         -f << parameters.dockerfile >> -t \
+#   #         << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
+#   #         << parameters.path >>

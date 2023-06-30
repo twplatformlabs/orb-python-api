@@ -25,7 +25,8 @@ parameters:
     description: specify the resouce class for the image
     type: enum
     enum: [medium, large, xlarge, 2xlarge]
-
+    default: medium
+    
   registry:
     description: Name of DTR compatible registry. Can use private registry.
     type: string

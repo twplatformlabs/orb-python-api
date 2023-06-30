@@ -205,6 +205,7 @@ parameters:
 
 steps:
   - checkout
+  - setup_remote_docker
   # - configure-machine:
   #     python-version: << parameters.python-version >>
   #     setuptools-version: << parameters.setuptools-version >>

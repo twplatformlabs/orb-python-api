@@ -13,6 +13,7 @@ parameters:
     description: specify the resouce class for the image
     type: enum
     enum: [medium, large, xlarge, 2xlarge]
+    default: medium
 
 machine:
     image: << parameters.executor-machine >>

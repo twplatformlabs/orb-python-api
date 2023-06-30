@@ -1,12 +1,13 @@
 # src/executors/machine-image.yaml
 
-description: Define the circleci machine vm image for a build job.
+description: Optional machine-image based executor for python-api builds.
 
 parameters:
 
   executor-machine:
-    description: specify circleci machine vm image
+    description: circleci machine executor
     type: string
+    default: ubuntu-2204:current
 
   resource-class:
     description: specify the resouce class for the image

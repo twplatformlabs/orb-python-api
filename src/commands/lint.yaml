@@ -1,27 +1,29 @@
 # src/commands/lint.yaml
 
 description: |
-  Python API lint:
+  pylint:
 
-  - Run pylint against lint-path. Default is  "./"
-  - Run hadolint on dockerfile. Default is "./Dockerfile"
+  - Run pylint against lint-path. Set to "None" to skip. Default is  "."
+  - Specify additional pylint options using parameters.pylint-options.
+
 
 parameters:
 
   lint-path:
-    description: path of python files to run pylint against
+    description: Path used for pylint. Set to None to skip.
     type: string
     default: "."
 
-  dockerfile:
-    description: Name of dockerfile
+  pylint-options:
+    description: (Optional) Additional pylint command line options.
     type: string
-    default: Dockerfile
+    default: ""
 
 steps:
-  - run:
-      name: Pylint << parameters.lint-path >>
-      command: pylint << parameters.lint-path >>
-  - run:
-      name: hadolint << parameters.dockerfile >>
-      command: docker run --rm -i hadolint/hadolint < << parameters.dockerfile >>
+  - unless:
+      condition:
+        equal: [ "None" , << parameters.lint-path >> ]
+      steps:
+        - run:
+            name: Pylint << parameters.lint-path >>
+            command: pylint << parameters.lint-path >> <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>

@@ -1,4 +1,4 @@
-# src/jobs/secure-image-build.yaml
+# src/jobs/build-image.yaml
 
 description: |
   Secure oci compatible image build from dockerfile.
@@ -116,107 +116,54 @@ parameters:
     type: steps
     default: []
 
+  image-cve-scan:
+    description: perform snyk.io docker cve scan
+    type: boolean
+    default: false
 
+  severity-threshold:
+    description: snyk test reporting threshold
+    type: string
+    default: "low"
 
-  # python-version:
-  #   description: version of python to install. 3 and above.
-  #   type: string
-  #   default: ""
-  # setuptools-version:
-  #   type: string
-  #   default: "68.0.0"
-  # wheel-version:
-  #   type: string
-  #   default: "0.40.0"
-  # pipenv-version:
-  #   type: string
-  #   default: "2023.6.18"
-  # pylint-version:
-  #   type: string
-  #   default: "2.17.4"
-  # pytest-version:
-  #   type: string
-  #   default: "7.4.0"
-  # coverage-version:
-  #   type: string
-  #   default: "7.2.7"
-  # invoke-version:
-  #   type: string
-  #   default: "2.1.3"
-  # requests-version:
-  #   type: string
-  #   default: "2.31.0"
-  # jinja2-version:
-  #   type: string
-  #   default: "3.1.2"
+  snyk-organization:
+    description: Trigger Scan results related to repository associated with organization created at snyk.io
+    type: string
+    default: ""
 
+  snyk-token:
+    description: snyk.io api-token
+    type: env_var_name
+    default: SNYK_TOKEN
 
+  skip-base-image:
+    description: optionally, skip performing cve scan of base image
+    type: boolean
+    default: false
 
+  health-url:
+    description: health or liveness
+    type: string
+    default: ""
 
+  port-definition:
+    description: docker run -p parameters
+    type: string
+    default: ""
 
-  # image-cve-scan:
-  #   description: perform snyk.io docker cve scan
-  #   type: boolean
-  #   default: false
+  startup-delay:
+    description: time to wait for service to startup and liveness endpoint to be available
+    type: integer
+    default: 3
 
-  # severity-threshold:
-  #   description: snyk test reporting threshold
-  #   type: string
-  #   default: "low"
-
-  # snyk-organization:
-  #   description: Trigger Scan results related to repository associated with organization created at snyk.io
-  #   type: string
-  #   default: ""
-
-  # snyk-token:
-  #   description: snyk.io api-token
-  #   type: env_var_name
-  #   default: SNYK_TOKEN
-
-  # skip-base-image:
-  #   description: optionally, skip performing cve scan of base image
-  #   type: boolean
-  #   default: false
-
-  # health-url:
-  #   description: health or liveness
-  #   type: string
-  #   default: ""
-
-  # port-definition:
-  #   description: docker run -p parameters
-  #   type: string
-  #   default: ""
-
-  # startup-delay:
-  #   description: time to wait for service to startup and liveness endpoint to be available
-  #   type: integer
-  #   default: 3
-
-
-
-  # docker-run-arguments:
-  #   description: additional Docker Run arguements
-  #   type: string
-  #   default: ""
-
-
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
 
 steps:
   - checkout
   - setup_remote_docker
-  # - configure-machine:
-  #     python-version: << parameters.python-version >>
-  #     setuptools-version: << parameters.setuptools-version >>
-  #     wheel-version: << parameters.wheel-version >>
-  #     pipenv-version: << parameters.pipenv-version >>
-  #     pylint-version: << parameters.pylint-version >>
-  #     pytest-version: << parameters.pytest-version >>
-  #     coverage-version: << parameters.coverage-version >>
-  #     invoke-version: << parameters.invoke-version >>
-  #     requests-version: << parameters.requests-version >>
-  #     jinja2-version: << parameters.jinja2-version >>
   - packages:
       package-manager: << parameters.package-manager >>
       install-dev: << parameters.install-dev >>
@@ -238,35 +185,35 @@ steps:
       tag: << parameters.tag-annotation >><< parameters.tag >>
       registry: << parameters.registry >>
       extra-build-args: << parameters.extra-build-args >>
-  # - when:
-  #     name: Perform snyk cve scan
-  #     condition: << parameters.image-cve-scan >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - cve-scan:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           dockerfile: << parameters.dockerfile >>
-  #           severity-threshold: << parameters.severity-threshold >>
-  #           snyk-organization: << parameters.snyk-organization >>
-  #           snyk-token: << parameters.snyk-token >>
-  #           skip-base-image: << parameters.skip-base-image >>
-  # - when:
-  #     name: perform bats container smoke (liveness) test
-  #     condition: << parameters.health-url >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - liveness:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           port-definition: << parameters.port-definition >>
-  #           health-url: << parameters.health-url>>
-  #           startup-delay: << parameters.startup-delay >>
-  #           docker-run-arguments: << parameters.docker-run-arguments >>
+  - when:
+      name: Perform snyk cve scan
+      condition: << parameters.image-cve-scan >>
+      requires:
+        - build
+      steps:
+        - cve-scan:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            dockerfile: << parameters.dockerfile >>
+            severity-threshold: << parameters.severity-threshold >>
+            snyk-organization: << parameters.snyk-organization >>
+            snyk-token: << parameters.snyk-token >>
+            skip-base-image: << parameters.skip-base-image >>
+  - when:
+      name: perform container smoke (liveness/readiness) test
+      condition: << parameters.health-url >>
+      requires:
+        - build
+      steps:
+        - liveness:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            port-definition: << parameters.port-definition >>
+            health-url: << parameters.health-url>>
+            startup-delay: << parameters.startup-delay >>
+            docker-run-arguments: << parameters.docker-run-arguments >>
   - when:
       name: Run after_build lifecycle hook steps.
       condition: << parameters.after-build >>

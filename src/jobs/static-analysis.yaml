@@ -1,6 +1,7 @@
 # src/jobs/static-analysis.yaml
 
-description: python, non-security static code analysis
+description: |
+  Perform static analysis of python code, with optional before and after custom steps.
 
 executor:
   name: circleci-python-builder
@@ -11,60 +12,90 @@ shell: << parameters.shell >>
 parameters:
 
   shell:
-    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    description: Shell launch configuration. Can override to support process level tool options (1password, teller).
     type: string
     default: /bin/bash -eo pipefail
 
   executor-image:
-    description: specify machine executor
+    description: Specify executor image used by job.
     type: string
     default: twdps/circleci-python-builder:stable
 
   executor-resource-class:
-    description: specify executor resource class. Default is medium
+    description: Specify executor resource class.
     type: enum
     enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
-  after-checkout:
-    description: Optional steps to run after checking out the code
-    type: steps
-    default: []
-
   package-manager:
-    description: Currently supports pip and pipenv
+    description: (Optional) Support for pip or pipenv package managers.
     type: enum
     enum: ["pipenv", "pip", "none"]
     default: "none"
 
   install-dev:
-    description: Install dev packages also. Not necessary if installed on executor
+    description: (Optional) Install dev packages. Requires setting package-manager.
     type: boolean
     default: false
 
+  pip-requirements-filename:
+    description: (Optional) Name of pip requirements file.
+    type: string
+    default: requirements.txt
+
+  pip-requirements-filename-dev:
+    description: (Optional) Name of pip development requirements file.
+    type: string
+    default: requirements-dev.txt
+
   lint-path:
-    description: path of python files to run pylint against
+    description: Path used for pylint. Set to None to skip.
     type: string
     default: "."
 
+  pylint-options:
+    description: (Optional) Additional pylint command line options.
+    type: string
+    default: ""
+
+  hadolint-dockerfile:
+    description: (Optional) Run hadolint by defualt. Set False to skip.
+    type: boolean
+    default: true
+
+  unit-test:
+    description: (Optional) Pytest unit testing. Set False to skip.
+    type: boolean
+    default: true
+
+  coverage:
+    description: (Optional) Calculate unit test coverage. Requires unit-test.
+    type: boolean
+    default: true
+
   report-coverage:
-    description: report test coverage
+    description: (Optional) Report test coverage.
     type: enum
     enum: ["codeclimate", "none"]
     default: "none"
 
-  dockerfile:
-    description: Name of dockerfile
-    type: string
-    default: Dockerfile
-
   cis-docker-image-scan:
-    description: perform CIS Docker Benchmark Section 4 assessment
+    description: (Optioanl) Perform CIS Docker Benchmark Section 4 assessment using conftest. Can customize to apply any rego policy.
     type: boolean
     default: false
 
+  dockerfile:
+    description: Name of dockerfile.
+    type: string
+    default: Dockerfile
+
+  after-checkout:
+    description: (Optional) steps to run after checking out the code.
+    type: steps
+    default: []
+
   after-analysis:
-    description: Optional steps to run after static code analysis
+    description: (Optional) Steps to run after static code analysis.
     type: steps
     default: []
 
@@ -78,17 +109,21 @@ steps:
   - packages:
       package-manager: << parameters.package-manager >>
       install-dev: << parameters.install-dev >>
+      pip-requirements-filename: << parameters.pip-requirements-filename >>
+      pip-requirements-filename-dev: << parameters.pip-requirements-filename-dev >>
   - lint:
       lint-path: << parameters.lint-path >>
+      pylint-options: << parameters.pylint-options >>
+  - hado-lint:
+      hadolint-dockerfile: << parameters.hadolint-dockerfile >>
       dockerfile: << parameters.dockerfile >>
-  - test-coverage:
+  - unit-testing:
+      unit-test: << parameters.unit-test >>
+      coverage: << parameters.coverage >>
       report-coverage: << parameters.report-coverage >>
-  - when:
-      name: perform CIS Docker Benchmark section 4 scan
-      condition: << parameters.cis-docker-image-scan >>
-      steps:
-        - cis-scan:
-            dockerfile: << parameters.dockerfile >>
+  - cis-scan:
+      cis-docker-image-scan: << parameters.cis-docker-image-scan >>
+      dockerfile: << parameters.dockerfile >>
   - when:
       name: Run after after analysis lifecycle hook steps
       condition: << parameters.after-analysis >>

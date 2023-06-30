@@ -2,21 +2,25 @@
 version: 2.1
 
 description: |
-  Continuous Integration and Build for python apis. This is a reference orb based on the following
-  setup of assumptions.
+  Continuous integration and secure build for python apis. This is a reference orb for the routine continuous
+  integration lifecycle management of python-based APIs running as OCI containers built from a Dockerfile.
 
-  Currently supported confnigurations:
+  Currently supported configurations:
 
-  - override default shell options
-  - define executor to use for build, default is twdps/circleci-python-builder
-  - use machine executor, installs latest release versions of build/test tools (pending)
-  - support for private dtr compatible registries and AWS ECR (pending)
+  - [pylint](https://github.com/pylint-dev/pylint)
+  - [pytest](https://docs.pytest.org/en/7.3.x/)
+  - test coverage reporting using [Coverage.py](https://coverage.readthedocs.io/en/7.2.7/)
+  - vulnerability scanning using [Synk](https://github.com/snyk/cli)
+  - Dckerfile linting using [hadolint](https://github.com/hadolint/hadolint)
+  - OPA based CIS Dockerfile benchmark tracking using [conftest](https://github.com/open-policy-agent/conftest) (can use custom rego)
+  - Smoketests of liveness/readiness endpoints
+  - image signing using cosign
+  - generate Dockerfile sbom using syft
+  - support for private dtr compatible registries
   - support for customer dockerfile path/name, tags, tag annotations
-  - snyk CVE scanning
-  - hadolint of dockerfile
-  - support for conftest CIS Docker benchmarks for section 4 (Docker image)
-  - support for bats-based image smoke testing
-  - hooks for extrag build args and lifecycle steps at multiple points
+  - hooks for extrag build args and before|after lifecycle steps
+  - support for custom exeecutor, default is twdps/circleci-python-builder
+  - support for machine-image builds
 
 display:
   source_url: "https://github.com/ThoughtWorks-DPS/orb-python-api"

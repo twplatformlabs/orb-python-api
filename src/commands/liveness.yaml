@@ -1,9 +1,8 @@
 # src/commands/bats.yaml
 
 description: |
-  A common method of testing docker image configuration for infrastructure-as-code oriented containers.
-  This test will first run the docker image and then execute the bats test.
-  (see https://github.com/bats-core/bats-core)
+  A common method of testing OCI images that will run on kubernetes.
+  This test will first run the docker image and then curl the provided linveness or readiness endpoint.
 
 parameters:
 

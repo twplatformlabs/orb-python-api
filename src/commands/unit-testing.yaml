@@ -1,0 +1,54 @@
+# src/commands/test-coverage.yaml
+
+description: |
+  Run pytest against parameter target or . by default, optionally report
+
+  - codeclimate requires CC_TEST_REPORTER_ID to be available in the environment
+
+parameters:
+
+  unit-test:
+    description: (Optional) Pytest unit testing. Set False to skip.
+    type: boolean
+    default: true
+
+  coverage:
+    description: (Optional) Calculate unit test coverage. Requires unit-test.
+    type: boolean
+    default: true
+
+  report-coverage:
+    description: (Optional) Report test coverage.
+    type: enum
+    enum: ["codeclimate", "none"]
+    default: "none"
+
+steps:
+  - when:
+      name: Unit testing
+      condition: << parameters.unit-test >>
+      steps:
+        - unless:
+            condition: << parameters.coverage >>
+            steps:
+              - run: 
+                  name: Run pytest without test coverage analysis
+                  command: pytest -vv -l
+        - when:
+            condition: << parameters.coverage >>
+            steps:
+              - run:
+                  name: Run pytest with test coverage analysis
+                  command: |
+                    coverage run -m pytest -vv -l
+                    coverage xml --omit='test/*'
+              - when:
+                  name: Report unit test coverage
+                  condition:
+                    equal: [ "codeclimate", << parameters.report-coverage >> ]
+                  steps:
+                    - run:
+                        name: Report test coverage to codeclimate
+                        command: |
+                          cc-test-reporter format-coverage -t coverage.py
+                          cc-test-reporter upload-coverage

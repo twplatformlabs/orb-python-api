@@ -16,6 +16,16 @@ parameters:
     type: boolean
     default: false
 
+  pip-requirements-filename:
+    description: name of pip requirements files
+    type: string
+    default: requirements.txt
+
+  pip-requirements-filename-dev:
+    description: name of pip development requirements files
+    type: string
+    default: requirements-dev.txt
+
 steps:
   - when:
       name: Install python packages
@@ -24,16 +34,22 @@ steps:
           equal: [ "none", << parameters.package-manager >> ]
       steps:
         - when:
-            name: Generate requirements.txt from Pipfile
+            name: Install requirements from Pipfile
             condition:
               equal: [ "pipenv" , << parameters.package-manager >> ]
             steps:
               - run:
                   name: Generate requirements.txt from Pipfile
                   command: |
-                    pipenv requirements <<#parameters.install-dev>>--dev<</parameters.install-dev>> > requirements.txt
-        - run:
-            name: Install packages
-            command: |
-              pip install -r requirements.txt
-              pip list
+                    pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
+        - when:
+            name: Install requirements from Pipfile
+            condition:
+              equal: [ "pip" , << parameters.package-manager >> ]
+            steps:
+              - run:
+                  name: Install packages
+                  command: |
+                    <<#parameters.install-dev>>pip install -r << parameters.pip-requirements-filename-dev >><</parameters.install-dev>>
+                    pip install -r << parameters.pip-requirements-filename >>
+                    pip list

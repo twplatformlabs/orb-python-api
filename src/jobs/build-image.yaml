@@ -150,14 +150,14 @@ parameters:
 
 steps:
   - checkout
-  - when:
-      name: Run before_build lifecycle hook steps.
-      condition: << parameters.before-build >>
-      steps: << parameters.before-build >>
   - machine-setup:
       op-version: << parameters.op-version >>
       teller-version: << parameters.teller-version >>
       vault-version: << parameters.vault-version >>
+  - when:
+      name: Run before_build lifecycle hook steps.
+      condition: << parameters.before-build >>
+      steps: << parameters.before-build >>
   - confirm-registry:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>

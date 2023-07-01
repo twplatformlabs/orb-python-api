@@ -37,15 +37,16 @@ parameters:
 
 steps:
   - run:
-      name: multiarch build
-      command: exit 1
-      
-      
-      
-#       |
-#         docker buildx create --use
+      name: Amd/Arm Build
+      command: |
+        docker buildx create --use
+        docker buildx build --progress plain --push \
+                            --platform linux/amd64,linux/arm64 \
+                            -f << parameters.dockerfile >> \
+                            <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
+                            - t << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> .
 
-
+      
 # export BUILD_CMD="docker buildx build --progress plain --platform linux/amd64,linux/arm64 --push"
 # BUILD_SHA="$(echo "$CIRCLE_SHA1" | cut -c1-7)"
 # export BUILD_SHA

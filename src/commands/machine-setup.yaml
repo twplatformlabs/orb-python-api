@@ -1,0 +1,54 @@
+# src/commands/machine-setup.yaml
+
+description: |
+  Install additional tools on standard circleci ubuntu machine executor.
+
+parameters:
+
+  op-version:
+    description: (Optional) Install 1password cli
+    type: string
+    default: ""
+
+  teller-version:
+    description: (Optional) Install Teller cli
+    type: string
+    default: ""
+
+  vault-version:
+    description: (Optional) Install Vault cli
+    type: string
+    default: ""
+
+steps:
+  - when:
+      condition: << parameters.op-version >>
+      steps:
+        - run:
+            name: Install 1password cli
+            command: |
+              curl -L https://cache.agilebits.com/dist/1P/op2/pkg/v<< parameters.op-version >>/op_linux_amd64_v<< parameters.op-version >>.zip -o op.zip
+              unzip -o op.zip && sudo mv op /usr/local/bin/op
+              rm op.zip && rm op.sig
+              op --version
+  - when:
+      condition: << parameters.teller-version >>
+      steps:
+        - run:
+            name: Install teller cli
+            command:
+              curl -L https://github.com/tellerops/teller/releases/download/v<< parameters.teller-version >>/teller_<< parameters.teller-version >>_Linux_x86_64.tar.gz --output teller_<< parameters.teller-version >>_Linux_x86_64.tar.gz
+              tar -xzf teller_<< parameters.teller-version >>_Linux_x86_64.tar.gz
+              sudo mv teller /usr/local/bin/teller
+              teller version
+
+  - when:
+      condition: << parameters.vault-version >>
+      steps:
+        - run:
+            name: Install vault cli
+            command: |
+              curl -SLO "https://releases.hashicorp.com/vault/<< parameters.vault-version >>/vault_<< parameters.vault-version >>_linux_amd64.zip" > "vault_<< parameters.vault-version >>_linux_amd64.zip"
+              sudo unzip "vault_<< parameters.vault-version >>_linux_amd64.zip" -d /usr/local/bin
+              sudo rm "vault_<< parameters.vault-version >>_linux_amd64.zip"
+              vault version

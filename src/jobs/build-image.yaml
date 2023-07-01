@@ -26,7 +26,7 @@ parameters:
     type: enum
     enum: [medium, large, xlarge, 2xlarge]
     default: medium
-    
+
   registry:
     description: Name of DTR compatible registry. Can use private registry.
     type: string
@@ -118,6 +118,21 @@ parameters:
     type: string
     default: ""
 
+  op-version:
+    description: (Optional) Install 1password cli
+    type: string
+    default: ""
+
+  teller-version:
+    description: (Optional) Install Teller cli
+    type: string
+    default: ""
+
+  vault-version:
+    description: (Optional) Install Vault cli
+    type: string
+    default: ""
+
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps
@@ -139,6 +154,10 @@ steps:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>
       steps: << parameters.before-build >>
+  - machine-setup:
+      op-version: << parameters.op-version >>
+      teller-version: << parameters.teller-version >>
+      vault-version: << parameters.vault-version >>
   - confirm-registry:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>

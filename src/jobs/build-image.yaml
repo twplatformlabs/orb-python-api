@@ -4,7 +4,7 @@ description: |
   Secure oci compatible image build from dockerfile.
 
 executor:
-  name: ciricleci-python-builder
+  name: circleci-python-builder
   executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
@@ -21,7 +21,7 @@ parameters:
     type: string
     default: twdps/circleci-python-builder:stable
 
-  resource-class:
+  executor-resource-class:
     description: specify the resouce class for the image
     type: enum
     enum: [medium, large, xlarge, 2xlarge]

@@ -21,7 +21,7 @@ parameters:
   executor-machine:
     description: specify machine executor
     type: string
-    default: ubuntu-2204:2023.04.2
+    default: ubuntu-2204
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.

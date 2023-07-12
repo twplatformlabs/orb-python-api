@@ -1,84 +1,27 @@
 # src/commands/configure-machine.yaml
 
-description: |
-  Install additional tools on standard circleci ubuntu machine executor.
+description: Install additional tools on standard circleci ubuntu machine executor for docker build and test.
 
 parameters:
 
-  python-version:
-    description: version of python to install. 3 and above.
+  op-version:
+    description: Set to install 1password cli
     type: string
     default: ""
 
-  setuptools-version:
-    type: string
-
-  wheel-version:
-    type: string
-
-  pipenv-version:
-    type: string
-
-  pylint-version:
-    type: string
-
-  pytest-version:
-    type: string
-
-  coverage-version:
-    type: string
-
-  invoke-version:
-    type: string
-
-  requests-version:
-    type: string
-
-  jinja2-version:
-    type: string
-
-
 steps:
   - when:
-      condition: << parameters.python-version >>
+      condition: << parameters.op-version >>
       steps:
         - run:
-            name: install python version via pyenv
-            command: pyenv install << parameters.python-version >>
-  - run:
-      name: install default python packages
-      command: |
-        pip install \
-            setuptools==<< parameters.setuptools-version >> \
-            wheel==<< parameters.wheel-version >> \
-            pipenv==<< parameters.pipenv-version >> \
-            pylint==<< parameters.pylint-version >> \
-            pytest==<< parameters.pytest-version >> \
-            coverage==<< parameters.coverage-version >> \
-            invoke==<< parameters.invoke-version >> \
-            requests==<< parameters.requests-version >> \
-            jinja2==<< parameters.jinja2-version >>
-  - run:
-      name: install codeclimate test coverage report-coverage
-      command: |
-        sudo bash -c "curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > /usr/local/bin/cc-test-reporter"
-        sudo chmod +x /usr/local/bin/cc-test-reporter
-  - run:
-      name: install secrethub
-      command: |
-        curl -sLJO https://deb.secrethub.io/amd64
-        sudo dpkg -i secrethub-cli-amd64.deb
-  - run:
-      name: install 1password
-      command: |
-        curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | sudo tee /etc/apt/sources.list.d/1password.list
-        sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
-        curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
-        sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
-        curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
-        sudo apt update && sudo apt install 1password-cli
-        op --version
-  - run:
-      name: install snyk
-      command: npm install -g snyk
+            name: install 1password
+            command: |
+              curl -L https://cache.agilebits.com/dist/1P/op2/pkg/v<< parameters.op-version >>/op_linux_amd64_v<< parameters.op-version >>.zip -o op.zip
+              unzip -o op.zip && sudo mv op /usr/local/bin/op
+              rm op.zip && rm op.sig
+              op --version
+
+
+  # - run:
+  #     name: install snyk
+  #     command: npm install -g snyk

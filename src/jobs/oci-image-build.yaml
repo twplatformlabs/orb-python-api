@@ -1,28 +1,27 @@
-# src/jobs/build-image.yaml
+# src/jobs/oci-image-build.yaml
 
-description: |
-  Secure oci compatible image build from dockerfile.
+description: Secure oci compatible image build from dockerfile.
 
 executor:
-  name: circleci-python-builder
-  executor-image: << parameters.executor-image >>
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
   resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
 parameters:
 
   shell:
-    description: Shell launch configuration. Can override to support process level tool options (1password, teller).
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-image:
-    description: Specify executor image used by job.
+  executor-machine:
+    description: specify machine executor
     type: string
-    default: twdps/circleci-python-builder:stable
+    default: ubuntu-2204:current
 
   executor-resource-class:
-    description: specify the resouce class for the image
+    description: specify executor resource class. Default is medium.
     type: enum
     enum: [medium, large, xlarge, 2xlarge]
     default: medium
@@ -90,7 +89,6 @@ parameters:
 
 steps:
   - checkout
-  - setup_remote_docker
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>

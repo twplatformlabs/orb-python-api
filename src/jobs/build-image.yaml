@@ -4,9 +4,9 @@ description: |
   Secure oci compatible image build from dockerfile.
 
 executor:
-  name: machine-image
-  executor-machine: << parameters.executor-machine >>
-  resource-class: << parameters.resource-class >>
+  name: ciricleci-python-builder
+  executor-image: << parameters.executor-image >>
+  resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
 parameters:
@@ -16,10 +16,10 @@ parameters:
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-machine:
-    description: circleci machine executor
+  executor-image:
+    description: Specify executor image used by job.
     type: string
-    default: ubuntu-2204:current
+    default: twdps/circleci-python-builder:stable
 
   resource-class:
     description: specify the resouce class for the image
@@ -73,66 +73,6 @@ parameters:
     type: string
     default: ""
 
-  image-cve-scan:
-    description: (Ooptional) Perform Snyk docker vulnerability scan.
-    type: boolean
-    default: false
-
-  severity-threshold:
-    description: (OptionaL) Snyk test reporting threshold.
-    type: string
-    default: "low"
-
-  snyk-organization:
-    description: (Optional) Trigger Scan results related to repository associated with organization created at snyk.io.
-    type: string
-    default: ""
-
-  snyk-token:
-    description: (Optional) Snyk.io api-token. Required when imave-cve-scan is true.
-    type: env_var_name
-    default: SNYK_TOKEN
-
-  skip-base-image:
-    description: (Optional) Skip performing cve scan of base image.
-    type: boolean
-    default: false
-
-  health-url:
-    description: (Optional) API url to health test.
-    type: string
-    default: ""
-
-  port-definition:
-    description: (Optional) Docker run -p parameter.
-    type: string
-    default: ""
-
-  startup-delay:
-    description: (Optional) Time to wait for service to startup and test endpoint to be available.
-    type: integer
-    default: 3
-
-  docker-run-arguments:
-    description: (Optional) Additional Docker Run arguements.
-    type: string
-    default: ""
-
-  op-version:
-    description: (Optional) Install 1password cli
-    type: string
-    default: ""
-
-  teller-version:
-    description: (Optional) Install Teller cli
-    type: string
-    default: ""
-
-  vault-version:
-    description: (Optional) Install Vault cli
-    type: string
-    default: ""
-
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps
@@ -150,10 +90,7 @@ parameters:
 
 steps:
   - checkout
-  - machine-setup:
-      op-version: << parameters.op-version >>
-      teller-version: << parameters.teller-version >>
-      vault-version: << parameters.vault-version >>
+  - setup_remote_docker
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>

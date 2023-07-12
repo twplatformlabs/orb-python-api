@@ -44,7 +44,7 @@ steps:
                             --platform linux/amd64,linux/arm64 \
                             -f << parameters.dockerfile >> \
                             <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                            - t << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> .
+                            -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" .
 
       
 # export BUILD_CMD="docker buildx build --progress plain --platform linux/amd64,linux/arm64 --push"

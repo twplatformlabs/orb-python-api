@@ -72,6 +72,31 @@ parameters:
     type: string
     default: ""
 
+  image-cve-scan:
+    description: perform snyk.io docker cve scan
+    type: boolean
+    default: false
+
+  severity-threshold:
+    description: snyk test reporting threshold
+    type: string
+    default: "low"
+
+  snyk-organization:
+    description: Trigger Scan results related to repository associated with organization created at snyk.io
+    type: string
+    default: ""
+
+  snyk-token:
+    description: snyk.io api-token
+    type: env_var_name
+    default: SNYK_TOKEN
+
+  skip-base-image:
+    description: optionally, skip performing cve scan of base image
+    type: boolean
+    default: false
+
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps

@@ -104,21 +104,21 @@ steps:
       tag: << parameters.tag-annotation >><< parameters.tag >>
       registry: << parameters.registry >>
       extra-build-args: << parameters.extra-build-args >>
-  # - when:
-  #     name: Perform snyk cve scan
-  #     condition: << parameters.image-cve-scan >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - cve-scan:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           dockerfile: << parameters.dockerfile >>
-  #           severity-threshold: << parameters.severity-threshold >>
-  #           snyk-organization: << parameters.snyk-organization >>
-  #           snyk-token: << parameters.snyk-token >>
-  #           skip-base-image: << parameters.skip-base-image >>
+  - when:
+      name: Perform snyk cve scan
+      condition: << parameters.image-cve-scan >>
+      requires:
+        - build
+      steps:
+        - cve-scan:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            dockerfile: << parameters.dockerfile >>
+            severity-threshold: << parameters.severity-threshold >>
+            snyk-organization: << parameters.snyk-organization >>
+            snyk-token: << parameters.snyk-token >>
+            skip-base-image: << parameters.skip-base-image >>
   # - when:
   #     name: perform container smoke (liveness/readiness) test
   #     condition: << parameters.health-url >>

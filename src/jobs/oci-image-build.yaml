@@ -97,6 +97,26 @@ parameters:
     type: boolean
     default: false
 
+  health-url:
+    description: health or liveness
+    type: string
+    default: ""
+
+  port-definition:
+    description: docker run -p parameters
+    type: string
+    default: ""
+
+  startup-delay:
+    description: time to wait for service to startup and liveness endpoint to be available
+    type: integer
+    default: 3
+
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
+
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps
@@ -104,11 +124,6 @@ parameters:
 
   after-build:
     description: (Optional) Steps to run Docker build.
-    type: steps
-    default: []
-
-  after-push:
-    description: (Optional) Steps to run after publishing the image to registry.
     type: steps
     default: []
 
@@ -144,29 +159,21 @@ steps:
             snyk-organization: << parameters.snyk-organization >>
             snyk-token: << parameters.snyk-token >>
             skip-base-image: << parameters.skip-base-image >>
-  # - when:
-  #     name: perform container smoke (liveness/readiness) test
-  #     condition: << parameters.health-url >>
-  #     requires:
-  #       - build
-  #     steps:
-  #       - liveness:
-  #           registry: << parameters.registry >>
-  #           image: << parameters.image >>
-  #           tag: << parameters.tag-annotation >><< parameters.tag >>
-  #           port-definition: << parameters.port-definition >>
-  #           health-url: << parameters.health-url>>
-  #           startup-delay: << parameters.startup-delay >>
-  #           docker-run-arguments: << parameters.docker-run-arguments >>
-  # - when:
-  #     name: Run after_build lifecycle hook steps.
-  #     condition: << parameters.after-build >>
-  #     steps: << parameters.after-build >>
-  # - push:
-  #     registry: << parameters.registry >>
-  #     image: << parameters.image >>
-  #     tag: << parameters.tag-annotation >><< parameters.tag >>
-  # - when:
-  #     name: Run after_push lifecycle hook steps.
-  #     condition: << parameters.after-push >>
-  #     steps: << parameters.after-push >>
+  - when:
+      name: perform container smoke (liveness/readiness) test
+      condition: << parameters.health-url >>
+      requires:
+        - build
+      steps:
+        - liveness:
+            registry: << parameters.registry >>
+            image: << parameters.image >>
+            tag: << parameters.tag-annotation >><< parameters.tag >>
+            port-definition: << parameters.port-definition >>
+            health-url: << parameters.health-url>>
+            startup-delay: << parameters.startup-delay >>
+            docker-run-arguments: << parameters.docker-run-arguments >>
+  - when:
+      name: Run after_build lifecycle hook steps.
+      condition: << parameters.after-build >>
+      steps: << parameters.after-build >>

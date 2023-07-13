@@ -31,7 +31,7 @@ steps:
   - run:
       name: push sbom to container registry
       command: |
-        export REGISTRY_LOGIN=< parameters.registry >>
+        export REGISTRY_LOGIN=<< parameters.registry >>
         if [[ "<< parameters.registry >>" == *"/"* ]]; then
           export REGISTRY_SED=$(echo "<< parameters.registry >>/" | sed 's/\//\\\//g')
           export REGISTRY_LOGIN=$(echo $REGISTRY_LOGIN | sed 's/\/.*//')

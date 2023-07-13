@@ -103,6 +103,10 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
+  - when:
+      name: Run before_push lifecycle hook steps.
+      condition: << parameters.before-push >>
+      steps: << parameters.before-push >>
   - pull:
       registry: << parameters.registry >>
       image: << parameters.image >>
@@ -125,10 +129,6 @@ steps:
       image: << parameters.image >>
       current-tag: << parameters.pull-tag >>
       new-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
-  - when:
-      name: Run before_push lifecycle hook steps.
-      condition: << parameters.before-push >>
-      steps: << parameters.before-push >>
   - push:
       registry: << parameters.registry >>
       image: << parameters.image >>

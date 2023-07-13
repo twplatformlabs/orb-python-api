@@ -1,0 +1,62 @@
+# src/commands/sign.yaml
+
+description: Sign oci image using cosign
+
+parameters:
+
+  registry:
+    description: full registry path for writing signature
+    type: string
+
+  image:
+    description: Name of image
+    type: string
+
+  tag:
+    description: Value for tag
+    type: string
+
+  attestations:
+    description: attestations to include in signature
+    type: string
+    default: ""
+
+  sign-key:
+    description: path to private key used to sign image
+    type: string
+    default: cosign.key
+
+  verify-key:
+    description: path to public key used to verify signature
+    type: string
+    default: cosign.pub
+
+  cosign-password:
+    description: signing key passphrase
+    type: env_var_name
+    default: COSIGN_PASSWORD
+
+steps:
+  - run:
+      name: Confirm signing parameters are set; key path, COSIGN_PASSWORD
+      command: |
+        if [ ! -f << parameters.sign-key >> ]; then
+          echo "signing key not available; not able to sign image."
+          exit 1
+        fi
+
+        if [ ! -f << parameters.verify-key >> ]; then
+          echo "verification key not available; not able to validate signing process."
+          exit 1
+        fi
+
+        if [ ! ${<< parameters.cosign-password >>-} ]; then
+          echo "signing key passphrase is not available; not able to sign image."
+          exit 1
+        fi
+  - run:
+      name: Sign oci image and store signature to registry
+      command: |
+        cosign sign --key << parameters.sign-key >> \
+            <<#parameters.attestations>> << parameters.attestations >> <</parameters.attestations>> \
+             $(cat manifestid) -y

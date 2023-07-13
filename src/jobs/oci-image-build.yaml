@@ -122,6 +122,31 @@ parameters:
     type: string
     default: ""
 
+  # attestations:
+  #   description: attestations to include in signature
+  #   type: string
+  #   default: ""
+
+  # sign-key:
+  #   description: path to private key used to sign image
+  #   type: string
+  #   default: cosign.key
+
+  # verify-key:
+  #   description: path to public key used to verify signature
+  #   type: string
+  #   default: cosign.pub
+
+  # cosign-password:
+  #   description: signing key passphrase
+  #   type: env_var_name
+  #   default: COSIGN_PASSWORD
+
+  # sbom-filename:
+  #   description: name of generate sbom file
+  #   type: string
+  #   default: sbom.spdx
+
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps

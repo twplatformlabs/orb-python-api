@@ -1,6 +1,6 @@
 # src/commands/pull.yaml
 
-description: Pull docker image from registry
+description: Publish docker image to a registry
 
 parameters:
 
@@ -21,3 +21,6 @@ steps:
   - run:
       name: Pull a tagged image from the docker registry
       command: docker pull << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+  - run:
+      name: get image manifest id
+      command: docker image inspect --format='{{index .RepoDigests 0}}' << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> > manifestid

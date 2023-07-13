@@ -1,0 +1,35 @@
+# src/commands/sbom.yaml
+
+description: generate sbom for the image and write to OCI compatible registry. Assumes manifestif is present.
+
+parameters:
+
+  registry:
+    description: full registry path for writing signature
+    type: string
+    default: docker.io
+
+  registry-login:
+    description: username for reigstry access
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: password for registry access
+    type: env_var_name
+    default: DOCKER_PASSWORD
+
+  sbom-filename:
+    description: name of generate sbom file
+    type: string
+    default: sbom.spdx
+
+steps:
+  - run:
+      name: generate sbom using syft
+      command: syft packages --verbose --output spdx-json $(cat manifestid) > << parameters.sbom-filename >>
+  - run:
+      name: push sbom to container registry
+      command: |
+        echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
+        oras push --artifact-type 'sbom' << parameters.registry >>/$(cat manifestid | sed 's/<< parameters.registry >>\///g' | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json

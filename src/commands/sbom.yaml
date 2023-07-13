@@ -34,5 +34,6 @@ steps:
         if [[ "<< parameters.registry >>" == *"/"* ]]; then
           export REGISTRY_SED=$(echo "<< parameters.registry >>/" | sed 's/\//\\\//g')
         fi
+        echo "REGISTRY_SED = ${REGISTRY_SED}"
         echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
         oras push --artifact-type 'sbom' << parameters.registry >>/$(cat manifestid | sed "s/$REGISTRY_SED//g" | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json

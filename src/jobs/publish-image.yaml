@@ -99,14 +99,14 @@ parameters:
 steps:
   - checkout
   - setup_remote_docker
-  - confirm-registry:
-      registry: << parameters.registry >>
-      registry-login: << parameters.registry-login >>
-      registry-password: << parameters.registry-password >>
   - when:
       name: Run before_push lifecycle hook steps.
       condition: << parameters.before-push >>
       steps: << parameters.before-push >>
+  - confirm-registry:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
   - pull:
       registry: << parameters.registry >>
       image: << parameters.image >>

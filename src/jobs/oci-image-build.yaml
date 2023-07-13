@@ -127,6 +127,11 @@ parameters:
     type: steps
     default: []
 
+  after-push:
+    description: Optional steps to run after publishing the docker image
+    type: steps
+    default: []
+
 steps:
   - checkout
   - when:
@@ -137,6 +142,7 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
+  # perform standard docker build to build image only to local daemon filespace for testing
   - build:
       dockerfile: << parameters.dockerfile >>
       path: << parameters.path >>
@@ -144,6 +150,10 @@ steps:
       tag: << parameters.tag-annotation >><< parameters.tag >>
       registry: << parameters.registry >>
       extra-build-args: << parameters.extra-build-args >>
+  - when:
+      name: Run after_build lifecycle hook steps.
+      condition: << parameters.after-build >>
+      steps: << parameters.after-build >>
   - when:
       name: Perform snyk cve scan
       condition: << parameters.image-cve-scan >>
@@ -173,7 +183,15 @@ steps:
             health-url: << parameters.health-url>>
             startup-delay: << parameters.startup-delay >>
             docker-run-arguments: << parameters.docker-run-arguments >>
+  # if prior validations successful, now perform multi-arch build/push
+  - buildx:
+      dockerfile: << parameters.dockerfile >>
+      path: << parameters.path >>
+      image: << parameters.image >>
+      tag: << parameters.tag-annotation >><< parameters.tag >>
+      registry: << parameters.registry >>
+      extra-build-args: << parameters.extra-build-args >>
   - when:
-      name: Run after_build lifecycle hook steps.
-      condition: << parameters.after-build >>
-      steps: << parameters.after-build >>
+      name: Run after_push lifecycle hook steps.
+      condition: << parameters.after-push >>
+      steps: << parameters.after-push >>

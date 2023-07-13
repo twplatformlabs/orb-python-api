@@ -1,6 +1,6 @@
 # src/commands/build.yaml
 
-description: Build oci compatible image from Dockerfile.
+description: Buildx for multi-arch oci compatible image from Dockerfile.
 
 parameters:
 
@@ -37,8 +37,11 @@ parameters:
 
 steps:
   - run:
-      name: Docker Build
+      name: Amd/Arm Build
       command: |
-        docker build -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
-                     <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                     -f << parameters.dockerfile >> << parameters.path >>
+        docker buildx create --use
+        docker buildx build --progress plain --push \
+                            --platform linux/amd64,linux/arm64 \
+                            -f << parameters.dockerfile >> \
+                            <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
+                            -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" << parameters.path >>

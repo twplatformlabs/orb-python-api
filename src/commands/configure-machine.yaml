@@ -9,6 +9,11 @@ parameters:
     type: string
     default: ""
 
+  snyk-version:
+    description: Set to install snyk cli
+    type: string
+    default: ""
+
 steps:
   - when:
       condition: << parameters.op-version >>
@@ -20,8 +25,9 @@ steps:
               unzip -o op.zip && sudo mv op /usr/local/bin/op
               rm op.zip && rm op.sig
               op --version
-
-
-  # - run:
-  #     name: install snyk
-  #     command: npm install -g snyk
+  - when:
+      condition: << parameters.snyk-version >>
+      steps:
+        - run:
+            name: install snyk
+            command: npm install -g snyk@<< parameters.snyk-version >>

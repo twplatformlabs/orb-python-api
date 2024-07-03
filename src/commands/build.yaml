@@ -1,4 +1,6 @@
 # src/commands/build.yaml
+# yamllint disable rule:line-length
+---
 
 description: Build oci compatible image from Dockerfile.
 

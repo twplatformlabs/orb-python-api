@@ -1,4 +1,6 @@
 # src/commands/pull.yaml
+# yamllint disable rule:line-length
+---
 
 description: Publish docker image to a registry
 

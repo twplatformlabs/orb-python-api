@@ -1,7 +1,9 @@
 # src/jobs/publish-image.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
-  Tag registry image with semantic version for release, sign and generate sbom.  
+  Tag registry image with semantic version for release, sign and generate sbom.
 
 executor:
   name: circleci-python-builder
@@ -111,7 +113,7 @@ steps:
       registry: << parameters.registry >>
       image: << parameters.image >>
       tag: << parameters.pull-tag >>
-  - sign: 
+  - sign:
       registry: << parameters.registry >>
       image: << parameters.image >>
       tag: << parameters.pull-tag >>

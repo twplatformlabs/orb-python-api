@@ -1,4 +1,6 @@
 # src/commands/bats.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   A common method of testing OCI images that will run on kubernetes.

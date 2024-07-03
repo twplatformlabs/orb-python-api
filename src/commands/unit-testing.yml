@@ -1,4 +1,6 @@
 # src/commands/test-coverage.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   Run pytest against parameter target or . by default, optionally report
@@ -31,7 +33,7 @@ steps:
         - unless:
             condition: << parameters.coverage >>
             steps:
-              - run: 
+              - run:
                   name: Run pytest without test coverage analysis
                   command: pytest -vv -l
         - when:
@@ -45,7 +47,7 @@ steps:
               - when:
                   name: Report unit test coverage
                   condition:
-                    equal: [ "codeclimate", << parameters.report-coverage >> ]
+                    equal: ["codeclimate", << parameters.report-coverage >>]
                   steps:
                     - run:
                         name: Report test coverage to codeclimate

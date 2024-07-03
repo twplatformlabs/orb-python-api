@@ -1,4 +1,6 @@
 # src/commands/sign.yaml
+# yamllint disable rule:line-length
+---
 
 description: Sign oci image using cosign
 

@@ -1,4 +1,6 @@
 # src/jobs/oci-image-build.yaml
+# yamllint disable rule:line-length
+---
 
 description: Secure oci compatible image build from dockerfile.
 

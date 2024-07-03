@@ -1,3 +1,4 @@
+# yamllint disable rule:line-length
 ---
 version: 2.1
 
@@ -11,8 +12,7 @@ description: |
   - [pytest](https://docs.pytest.org/en/7.3.x/)
   - test coverage reporting using [Coverage.py](https://coverage.readthedocs.io/en/7.2.7/)
   - vulnerability scanning using [Synk](https://github.com/snyk/cli)
-  - Dckerfile linting using [hadolint](https://github.com/hadolint/hadolint)
-  - OPA based CIS Dockerfile benchmark tracking using [conftest](https://github.com/open-policy-agent/conftest) (can use custom rego)
+  - Dockerfile linting using [hadolint](https://github.com/hadolint/hadolint)
   - Smoketests of liveness/readiness endpoints
   - image signing using cosign
   - generate Dockerfile sbom using syft
@@ -22,7 +22,8 @@ description: |
   - support for custom exeecutor, default is twdps/circleci-python-builder
   - support for machine-image builds
 
-  Note: this version of twdps/orb-python-api is a breaking change. No backwards compatibility support will be maintained.
-  
+  Note: version 2.0.0 of twdps/orb-python-api is a breaking change. No backwards compatibility support will be maintained.
+
 display:
   source_url: "https://github.com/ThoughtWorks-DPS/orb-python-api"
+  home_url: "https://github.com/ThoughtWorks-DPS/orb-python-api"

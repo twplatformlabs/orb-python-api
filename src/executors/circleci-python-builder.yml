@@ -1,9 +1,10 @@
 # src/executors/circleci-python-builder.yaml
+# yamllint disable rule:line-length
+---
 
 description: >
   By default, orb-python-api uses twdps/circleci-python-builder, an alpine based CircleCI
-  executor. The executor includes standard tools for testing and packaging OCI images of
-  python code. A debain varient in available.
+  executor. The executor includes standard tools for linting, testing, and scanning python code.
 
   https://hub.docker.com/repository/docker/twdps/circleci-python-builder
 
@@ -12,7 +13,7 @@ parameters:
   executor-image:
     description: circleci remote docker executor
     type: string
-    default: docker.io/twdps/circleci-python-builder:alpine-stable
+    default: docker.io/twdps/circleci-python-builder:stable
 
   resource-class:
     description: specify the resouce class for the image

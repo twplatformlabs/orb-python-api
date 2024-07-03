@@ -1,4 +1,6 @@
 # src/commands/configure-machine.yaml
+# yamllint disable rule:line-length
+---
 
 description: Install additional tools on standard circleci ubuntu machine executor for docker build and test.
 

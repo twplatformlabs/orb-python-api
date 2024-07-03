@@ -1,8 +1,10 @@
 # src/jobs/static-analysis.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   Perform static analysis of python code,
-  
+
   Options:
     - package-manager: [pip | pipenv | none*] Use python package manager.
     - install-dev: [true | false*] Install development packages during static analysis.
@@ -10,8 +12,8 @@ description: |
     - hado-lint: [true* | false] Run hadolint on Dockerfile.
     - unit-test: [true* | false] Run pytest unit test.
     - coverage: [true* | false] Calculate unit test coverage.
-    - afer-checkout: [] Add custom steps to run immediately after code checkout. 
-    - after-analysis: [] Add custom steps to run after static analysis is compmlete. 
+    - afer-checkout: [] Add custom steps to run immediately after code checkout.
+    - after-analysis: [] Add custom steps to run after static analysis is compmlete.
   *default
 
   See parameters for additional custom settings.
@@ -92,11 +94,6 @@ parameters:
     enum: ["codeclimate", "none"]
     default: "none"
 
-  cis-docker-image-scan:
-    description: (Optioanl) Perform CIS Docker Benchmark Section 4 assessment using conftest. Can customize to apply any rego policy.
-    type: boolean
-    default: false
-
   dockerfile:
     description: Name of dockerfile.
     type: string
@@ -134,9 +131,6 @@ steps:
       unit-test: << parameters.unit-test >>
       coverage: << parameters.coverage >>
       report-coverage: << parameters.report-coverage >>
-  - cis-scan:
-      cis-docker-image-scan: << parameters.cis-docker-image-scan >>
-      dockerfile: << parameters.dockerfile >>
   - when:
       name: Run after after analysis lifecycle hook steps
       condition: << parameters.after-analysis >>

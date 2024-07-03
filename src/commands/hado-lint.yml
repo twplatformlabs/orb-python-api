@@ -1,4 +1,6 @@
 # src/commands/hadolint.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   hadolint:

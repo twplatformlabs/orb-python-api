@@ -1,4 +1,6 @@
 # src/jobs/clone-only.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   Launch executor, clone the repo and then fail the pipeline. This is a debug feature that

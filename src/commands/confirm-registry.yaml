@@ -1,4 +1,6 @@
 # src/commands/confirm-registry.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   Validate the container registry credentials. By default, the $DOCKER_LOGIN and

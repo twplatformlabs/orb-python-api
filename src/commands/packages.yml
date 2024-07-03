@@ -1,4 +1,6 @@
 # src/commands/packages.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   (Optional) Install python packages. Use 'install-dev: true' to include development packages.
@@ -31,12 +33,12 @@ steps:
       name: Install python packages
       condition:
         not:
-          equal: [ "none", << parameters.package-manager >> ]
+          equal: ["none", << parameters.package-manager >>]
       steps:
         - when:
             name: Install requirements from Pipfile
             condition:
-              equal: [ "pipenv" , << parameters.package-manager >> ]
+              equal: ["pipenv", << parameters.package-manager >>]
             steps:
               - run:
                   name: Generate requirements.txt from Pipfile
@@ -46,7 +48,7 @@ steps:
         - when:
             name: Install requirements from Pipfile
             condition:
-              equal: [ "pip" , << parameters.package-manager >> ]
+              equal: ["pip", << parameters.package-manager >>]
             steps:
               - run:
                   name: Install packages

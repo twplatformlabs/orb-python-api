@@ -1,4 +1,6 @@
 # src/executors/machine-image.yaml
+# yamllint disable rule:line-length
+---
 
 description: Optional machine-image based executor for python-api builds.
 
@@ -12,9 +14,9 @@ parameters:
   resource-class:
     description: specify the resouce class for the image
     type: enum
-    enum: [medium, large, xlarge, 2xlarge]
+    enum: [medium, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
 machine:
-    image: << parameters.executor-machine >>
-    resource_class: << parameters.resource-class >>
+  image: << parameters.executor-machine >>
+  resource_class: << parameters.resource-class >>

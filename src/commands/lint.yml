@@ -1,11 +1,12 @@
 # src/commands/lint.yaml
+# yamllint disable rule:line-length
+---
 
 description: |
   pylint:
 
   - Run pylint against lint-path. Set to "none" to skip. Default is  "."
   - Specify additional pylint options using parameters.pylint-options.
-
 
 parameters:
 
@@ -22,7 +23,7 @@ parameters:
 steps:
   - unless:
       condition:
-        equal: [ "none" , << parameters.lint-path >> ]
+        equal: ["none", << parameters.lint-path >>]
       steps:
         - run:
             name: Pylint << parameters.lint-path >>

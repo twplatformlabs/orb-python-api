@@ -1,4 +1,6 @@
 # src/commands/tag.yaml
+# yamllint disable rule:line-length
+---
 
 description: Pull docker image from registry
 

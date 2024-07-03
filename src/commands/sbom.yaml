@@ -1,4 +1,6 @@
 # src/commands/sbom.yaml
+# yamllint disable rule:line-length
+---
 
 description: generate sbom for the image and write to OCI compatible registry. Assumes manifestif is present.
 

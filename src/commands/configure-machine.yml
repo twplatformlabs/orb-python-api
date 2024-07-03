@@ -9,12 +9,10 @@ parameters:
   op-version:
     description: Set to install 1password cli
     type: string
-    default: ""
 
   snyk-version:
     description: Set to install snyk cli
     type: string
-    default: ""
 
 steps:
   - when:

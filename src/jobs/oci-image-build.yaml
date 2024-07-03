@@ -20,12 +20,12 @@ parameters:
   executor-machine:
     description: specify machine executor
     type: string
-    default: ubuntu-2204:current
+    default: ubuntu-2404:current
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
     type: enum
-    enum: [medium, large, xlarge, 2xlarge]
+    enum: [medium, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
   registry:
@@ -189,8 +189,6 @@ steps:
   - when:
       name: Perform snyk cve scan
       condition: << parameters.image-cve-scan >>
-      requires:
-        - build
       steps:
         - cve-scan:
             registry: << parameters.registry >>
@@ -204,8 +202,6 @@ steps:
   - when:
       name: perform container smoke (liveness/readiness) test
       condition: << parameters.health-url >>
-      requires:
-        - build
       steps:
         - liveness:
             registry: << parameters.registry >>

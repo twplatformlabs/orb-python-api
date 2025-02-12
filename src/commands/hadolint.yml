@@ -1,0 +1,25 @@
+# src/commands/hadolint.yaml
+# yamllint disable rule:line-length
+---
+
+description: |
+  hadolint:
+
+  - Runs docker version of hadolint
+
+parameters:
+
+  dockerfile:
+    description: Name of dockerfile.
+    type: string
+    default: Dockerfile
+
+  hadolint-additional-args:
+    description: Additional Hadolint CLI command line flags.
+    type: string
+    default: ""
+
+steps:
+  - run:
+      name: hadolint << parameters.dockerfile >>
+      command: hadolint << parameters.hadolint-additional-args >> << parameters.dockerfile >>

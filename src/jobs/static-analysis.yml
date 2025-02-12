@@ -73,7 +73,7 @@ parameters:
     type: string
     default: ""
 
-  hadolint-dockerfile:
+  hadolint:
     description: (Optional) Run hadolint by defualt. Set False to skip.
     type: boolean
     default: true
@@ -91,7 +91,7 @@ parameters:
   report-coverage:
     description: (Optional) Report test coverage.
     type: enum
-    enum: ["codeclimate", "none"]
+    enum: ["codacy", "none"]
     default: "none"
 
   dockerfile:
@@ -124,13 +124,19 @@ steps:
   - lint:
       lint-path: << parameters.lint-path >>
       pylint-options: << parameters.pylint-options >>
-  - hado-lint:
-      hadolint-dockerfile: << parameters.hadolint-dockerfile >>
-      dockerfile: << parameters.dockerfile >>
-  - unit-testing:
-      unit-test: << parameters.unit-test >>
-      coverage: << parameters.coverage >>
-      report-coverage: << parameters.report-coverage >>
+  - when:
+      name: hadolint dockerfile
+      condition: << parameters.hadolint >>
+      steps:
+        - hadolint:
+            dockerfile: << parameters.dockerfile >>
+  - when:
+      name: unit-tests
+      condition: << parameters.unit-test >>
+      steps:
+        - unit-testing:
+            coverage: << parameters.coverage >>
+            report-coverage: << parameters.report-coverage >>
   - when:
       name: Run after after analysis lifecycle hook steps
       condition: << parameters.after-analysis >>

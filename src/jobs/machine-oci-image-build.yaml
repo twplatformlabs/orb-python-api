@@ -1,14 +1,13 @@
 # src/jobs/oci-image-build.yaml
 # yamllint disable rule:line-length
 ---
+
 description: Secure oci compatible image build from dockerfile.
 
 executor:
-  name: circleci-python-builder
-  image: << parameters.executor-image-name >>
+  name: machine-image
+  executor-machine: << parameters.executor-machine >>
   resource-class: << parameters.executor-resource-class >>
-  registry-login: << parameters.registry-login >>
-  registry-password: << parameters.registry-password >>
 shell: << parameters.shell >>
 
 parameters:
@@ -18,15 +17,15 @@ parameters:
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-image-name:
-    description: Remote-docker executor image. Default is twdps/circleci-python-builder:stable.
+  executor-machine:
+    description: specify machine executor
     type: string
-    default: twdps/circleci-python-builder:stable
+    default: ubuntu-2404:current
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
     type: enum
-    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    enum: [medium, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
   registry:
@@ -125,6 +124,31 @@ parameters:
     type: string
     default: ""
 
+  # attestations:
+  #   description: attestations to include in signature
+  #   type: string
+  #   default: ""
+
+  # sign-key:
+  #   description: path to private key used to sign image
+  #   type: string
+  #   default: cosign.key
+
+  # verify-key:
+  #   description: path to public key used to verify signature
+  #   type: string
+  #   default: cosign.pub
+
+  # cosign-password:
+  #   description: signing key passphrase
+  #   type: env_var_name
+  #   default: COSIGN_PASSWORD
+
+  # sbom-filename:
+  #   description: name of generate sbom file
+  #   type: string
+  #   default: sbom.spdx
+
   before-build:
     description: (Optional) Steps to run before Docker build.
     type: steps
@@ -150,6 +174,7 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
+  # perform standard docker build to build image only to local daemon filespace for testing
   - run:
       name: setup artifact workspace
       command: mkdir -p workspace
@@ -189,6 +214,7 @@ steps:
             health-url: << parameters.health-url>>
             startup-delay: << parameters.startup-delay >>
             docker-run-arguments: << parameters.docker-run-arguments >>
+  # if prior validations successful, now perform multi-arch build/push
   - buildx:
       dockerfile: << parameters.dockerfile >>
       path: << parameters.path >>

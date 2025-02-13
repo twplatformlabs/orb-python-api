@@ -1,0 +1,17 @@
+# src/commands/persist-workspace.yml
+# yamllint disable rule:line-length
+---
+description: |
+  Persist all files in /workspace to the /logs folder in the workflow artifact store.
+
+steps:
+  - run:
+      name: list current workspace contents
+      command: ls -la workspace
+  - persist_to_workspace:
+      root: workspace
+      paths:
+        - "*.out"
+  - store_artifacts:
+      path: workspace
+      destination: logs

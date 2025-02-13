@@ -41,6 +41,10 @@ steps:
   - run:
       name: Docker Build
       command: |
-        docker build -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
-                     <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                     -f << parameters.dockerfile >> << parameters.path >>
+        str="<< parameters.image >>.<< parameters.tag >>.build.out"
+        outfile=${str#*/}
+        docker -v
+        docker build \
+          <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \
+          -t << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
+          -f << parameters.dockerfile >> << parameters.path >> 2>&1 | tee workspace/$outfile

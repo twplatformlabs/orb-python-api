@@ -41,9 +41,12 @@ steps:
   - run:
       name: Amd/Arm Build
       command: |
+        str="<< parameters.image >>.<< parameters.tag >>.build.out"
+        outfile=${str#*/}
+        docker -v
         docker buildx create --use
         docker buildx build --progress plain --push \
                             --platform linux/amd64,linux/arm64 \
                             -f << parameters.dockerfile >> \
                             <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                            -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" << parameters.path >>
+                            -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" << parameters.path >> 2>&1 | tee workspace/$outfile

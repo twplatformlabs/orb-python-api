@@ -147,6 +147,7 @@ parameters:
 
 steps:
   - checkout
+  - setup_remote_docker
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>

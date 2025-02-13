@@ -26,7 +26,7 @@ parameters:
   executor-resource-class:
     description: Specify executor resource class.
     type: enum
-    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
 
   registry-login:

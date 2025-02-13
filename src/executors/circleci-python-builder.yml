@@ -11,16 +11,28 @@ description: >
 parameters:
 
   executor-image:
-    description: circleci remote docker executor
+    description: Specify circleci remote-docker executor image.
     type: string
-    default: docker.io/twdps/circleci-python-builder:stable
 
   resource-class:
-    description: specify the resouce class for the image
+    description: Executor resource class.
     type: enum
-    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+
+  registry-login:
+    description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: Environment variable containing Password for reigstry access. Default is DOCKER_PASSWORD.
+    type: env_var_name
+    default: DOCKER_PASSWORD
 
 resource_class: << parameters.resource-class >>
 
 docker:
   - image: << parameters.executor-image >>
+    auth:
+      username: ${<< parameters.registry-login >>}
+      password: ${<< parameters.registry-password >>}

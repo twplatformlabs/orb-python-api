@@ -5,7 +5,7 @@ description: Secure oci compatible image build from dockerfile.
 
 executor:
   name: circleci-python-builder
-  image: << parameters.executor-image-name >>
+  executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
   registry-login: << parameters.registry-login >>
   registry-password: << parameters.registry-password >>
@@ -18,7 +18,7 @@ parameters:
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-image-name:
+  executor-image:
     description: Remote-docker executor image. Default is twdps/circleci-python-builder:stable.
     type: string
     default: twdps/circleci-python-builder:stable
@@ -80,12 +80,12 @@ parameters:
     type: string
     default: ""
 
-  image-cve-scan:
+  cve-scan:
     description: perform snyk.io docker cve scan
     type: boolean
     default: false
 
-  severity-threshold:
+  snyk-severity-threshold:
     description: snyk test reporting threshold
     type: string
     default: "low"
@@ -100,10 +100,15 @@ parameters:
     type: env_var_name
     default: SNYK_TOKEN
 
-  skip-base-image:
+  snyk-skip-base-image:
     description: optionally, skip performing cve scan of base image
     type: boolean
     default: false
+
+  snyk-additional-args:
+    description: Additional Snyk CLI command line flags.
+    type: string
+    default: ""
 
   health-url:
     description: health or liveness
@@ -166,17 +171,18 @@ steps:
       steps: << parameters.after-build >>
   - when:
       name: Perform snyk cve scan
-      condition: << parameters.image-cve-scan >>
+      condition: << parameters.cve-scan >>
       steps:
         - cve-scan:
             registry: << parameters.registry >>
             image: << parameters.image >>
             tag: << parameters.test-tag >>
             dockerfile: << parameters.dockerfile >>
-            severity-threshold: << parameters.severity-threshold >>
+            snyk-severity-threshold: << parameters.snyk-severity-threshold >>
             snyk-organization: << parameters.snyk-organization >>
             snyk-token: << parameters.snyk-token >>
-            skip-base-image: << parameters.skip-base-image >>
+            snyk-skip-base-image: << parameters.snyk-skip-base-image >>
+            snyk-additional-args: << parameters.snyk-additional-args >>
   - when:
       name: perform container smoke (liveness/readiness) test
       condition: << parameters.health-url >>

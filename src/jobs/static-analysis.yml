@@ -22,6 +22,8 @@ executor:
   name: circleci-python-builder
   executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
+  registry-login: << parameters.registry-login >>
+  registry-password: << parameters.registry-password >>
 shell: << parameters.shell >>
 
 parameters:
@@ -39,8 +41,23 @@ parameters:
   executor-resource-class:
     description: Specify executor resource class.
     type: enum
-    enum: [small, medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
     default: medium
+
+  registry:
+    description: Name of registry. Default is docker.io
+    type: string
+    default: docker.io
+
+  registry-login:
+    description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: Password for registry access.
+    type: env_var_name
+    default: DOCKER_PASSWORD
 
   package-manager:
     description: (Optional) Support for pip or pipenv package managers.

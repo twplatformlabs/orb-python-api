@@ -145,11 +145,11 @@ parameters:
 
 steps:
   - checkout
+  - configure-machine
   - when:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>
       steps: << parameters.before-build >>
-  - configure-machine
   - confirm-registry:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>

@@ -9,7 +9,10 @@ executor:
   name: circleci-python-builder
   executor-image: << parameters.executor-image >>
   resource-class: << parameters.executor-resource-class >>
+  registry-login: << parameters.registry-login >>
+  registry-password: << parameters.registry-password >>
 shell: << parameters.shell >>
+
 
 parameters:
 

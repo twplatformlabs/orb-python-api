@@ -59,6 +59,7 @@ steps:
   - run:
       name: Sign oci image and store signature to registry
       command: |
-        cosign sign --key << parameters.sign-key >> \
+        cosign sign --yes --recursive --key << parameters.sign-key >> \
             <<#parameters.attestations>> << parameters.attestations >> <</parameters.attestations>> \
-             $(cat manifestid) -y
+            $(cat manifestid)
+        cosign verify --key << parameters.verify-key >> << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>

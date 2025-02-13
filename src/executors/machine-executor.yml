@@ -1,4 +1,4 @@
-# src/executors/machine-image.yaml
+# src/executors/machine-executor.yaml
 # yamllint disable rule:line-length
 ---
 
@@ -11,7 +11,7 @@ parameters:
     type: string
     default: ubuntu-2204:current
 
-  resource-class:
+  executor-resource-class:
     description: specify the resouce class for the image
     type: enum
     enum: [medium, large, xlarge, 2xlarge, 2xlarge+]
@@ -19,4 +19,4 @@ parameters:
 
 machine:
   image: << parameters.executor-machine >>
-  resource_class: << parameters.resource-class >>
+  resource_class: << parameters.executor-resource-class >>

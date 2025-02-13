@@ -4,11 +4,9 @@
 description: Secure oci compatible image build from dockerfile.
 
 executor:
-  name: circleci-python-builder
-  executor-image: << parameters.executor-image >>
-  resource-class: << parameters.executor-resource-class >>
-  registry-login: << parameters.registry-login >>
-  registry-password: << parameters.registry-password >>
+  name: machine-executor
+  executor-machine: << parameters.executor-machine >>
+  executor-resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
 parameters:
@@ -18,10 +16,10 @@ parameters:
     type: string
     default: /bin/bash -eo pipefail
 
-  executor-image:
-    description: Remote-docker executor image. Default is twdps/circleci-python-builder:stable.
+  executor-machine:
+    description: Machine executor environment. Default is ubuntu-2204:current.
     type: string
-    default: twdps/circleci-python-builder:stable
+    default: ubuntu-2204:current
 
   executor-resource-class:
     description: specify executor resource class. Default is medium.
@@ -152,6 +150,7 @@ steps:
       name: Run before_build lifecycle hook steps.
       condition: << parameters.before-build >>
       steps: << parameters.before-build >>
+  - configure-machine
   - confirm-registry:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>

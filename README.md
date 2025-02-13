@@ -20,3 +20,7 @@ Features include:
 - supports codeclimate test reporting
 
 
+        # curl -L https://cache.agilebits.com/dist/1P/op2/pkg/v<< parameters.op-version >>/op_linux_amd64_v<< parameters.op-version >>.zip -o op.zip
+        # unzip -o op.zip && sudo mv op /usr/local/bin/op
+        # rm op.zip && rm op.sig
+        # op --version

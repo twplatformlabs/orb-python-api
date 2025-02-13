@@ -8,9 +8,9 @@ description: |
   have taken place.
 
 executor:
-  name: machine-image
+  name: machine-executor
   executor-machine: << parameters.executor-machine >>
-  resource-class: << parameters.executor-resource-class >>
+  executor-resource-class: << parameters.executor-resource-class >>
 shell: << parameters.shell >>
 
 parameters:

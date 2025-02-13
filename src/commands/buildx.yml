@@ -1,8 +1,8 @@
-# src/commands/build.yaml
+# src/commands/buildx.yaml
 # yamllint disable rule:line-length
 ---
 
-description: Buildx for multi-arch oci compatible image from Dockerfile.
+description: Buildx and push for multi-arch oci compatible image from Dockerfile.
 
 parameters:
 

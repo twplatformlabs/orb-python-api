@@ -112,10 +112,10 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
-  - pull:
-      registry: << parameters.registry >>
-      image: << parameters.image >>
-      tag: << parameters.pull-tag >>
+  # - pull:
+  #     registry: << parameters.registry >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.pull-tag >>
   - sign:
       registry: << parameters.registry >>
       image: << parameters.image >>
@@ -129,15 +129,15 @@ steps:
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
       sbom-filename: << parameters.sbom-filename >>
-  - tag:
+  - multiarch-tag:
       registry: << parameters.registry >>
       image: << parameters.image >>
       current-tag: << parameters.pull-tag >>
       new-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
-  - push:
-      registry: << parameters.registry >>
-      image: << parameters.image >>
-      tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+  # - push:
+  #     registry: << parameters.registry >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.publish-tag >><< parameters.tag-annotation >>
   - when:
       name: Run after_push lifecycle hook steps.
       condition: << parameters.after-push >>

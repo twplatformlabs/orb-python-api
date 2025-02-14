@@ -26,4 +26,7 @@ parameters:
 steps:
   - run:
       name: Tag a local docker image
-      command: docker tag << parameters.registry >>/<< parameters.image >>:<< parameters.current-tag >> << parameters.registry >>/<< parameters.image >>:<< parameters.new-tag >>
+      command: |
+        docker buildx imagetools create \
+          --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.new_tag >>" \
+                "<< parameters.registry >>/<< parameters.image >>:<< parameters.current-tag >>"

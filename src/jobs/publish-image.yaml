@@ -132,8 +132,8 @@ steps:
   - multiarch-tag:
       registry: << parameters.registry >>
       image: << parameters.image >>
-      current-tag: << parameters.pull-tag >>
-      new-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+      build-tag: << parameters.pull-tag >>
+      release-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
   # - push:
   #     registry: << parameters.registry >>
   #     image: << parameters.image >>

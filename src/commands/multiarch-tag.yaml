@@ -15,12 +15,12 @@ parameters:
     description: Name of image
     type: string
 
-  current-tag:
-    description: existing tag
+  build-tag:
+    description: build sha tag
     type: string
 
-  new-tag:
-    description: Value for new tag
+  release-tag:
+    description: semantic release tag
     type: string
 
 steps:
@@ -28,5 +28,5 @@ steps:
       name: Tag a local docker image
       command: |
         docker buildx imagetools create \
-          --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.new_tag >>" \
-                "<< parameters.registry >>/<< parameters.image >>:<< parameters.current-tag >>"
+          --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.release-tag >>" \
+                "<< parameters.registry >>/<< parameters.image >>:<< parameters.build-tag >>"

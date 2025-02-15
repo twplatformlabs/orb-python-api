@@ -15,7 +15,6 @@ description: Install additional tools on standard circleci ubuntu machine execut
 #     type: string
 
 steps:
-
   - run:
       name: install 1password
       command: |
@@ -27,7 +26,11 @@ steps:
         curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
         sudo apt update && sudo apt install 1password-cli
         op --version
-
   - run:
       name: install snyk
       command: npm install -g snyk
+  - run:
+      name: install cosign
+      command: |
+        curl -LO "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+        chmod +x cosign-linux-amd64 && sudo mv cosign-linux-amd64 /usr/local/bin/cosign

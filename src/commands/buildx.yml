@@ -75,9 +75,7 @@ steps:
                             << parameters.path >> 2>&1 | tee workspace/$outfile
   - run:
       name: fetch manifest
-      command: docker buildx imagetools \
-                             inspect "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
-                             --raw | jq -r '.manifests[0].digest' > digest
+      command: docker buildx imagetools inspect "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" --raw | jq -r '.manifests[0].digest' > digest
   - run:
       name: sign image
       command: |

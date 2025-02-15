@@ -37,9 +37,29 @@ parameters:
     type: string
     default: ""
 
+  attestations:
+    description: attestations to include in signature
+    type: string
+    default: ""
+
+  sign-key:
+    description: path to private key used to sign image
+    type: string
+    default: cosign.key
+
+  verify-key:
+    description: path to public key used to verify signature
+    type: string
+    default: cosign.pub
+
+  cosign-password:
+    description: signing key passphrase
+    type: env_var_name
+    default: COSIGN_PASSWORD
+
 steps:
   - run:
-      name: Amd/Arm Build
+      name: Amd/Arm Multiarch Build with bill-of-materials
       command: |
         str="<< parameters.image >>.<< parameters.tag >>.build.out"
         outfile=${str#*/}
@@ -47,6 +67,28 @@ steps:
         docker buildx create --use
         docker buildx build --progress plain --push \
                             --platform linux/amd64,linux/arm64 \
-                            -f << parameters.dockerfile >> \
+                            --attest=type=sbom \
+                            --provenance=true --secret id=cosign.key,src=<< parameters.sign-key >> \
+                            --file << parameters.dockerfile >> \
                             <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                            -t "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" << parameters.path >> 2>&1 | tee workspace/$outfile
+                            --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
+                            << parameters.path >> 2>&1 | tee workspace/$outfile
+  - run:
+      name: fetch manifest
+      command: docker buildx imagetools \
+                             inspect "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
+                             --raw | jq -r '.manifests[0].digest' > digest
+  - run:
+      name: sign image
+      command: |
+        cosign sign --key cosign.key "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" $(cat digest)
+        cosign verify --key << parameters.verify-key >> << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+
+        # docker buildx build --progress plain --push \
+        #                     --platform linux/amd64,linux/arm64 \
+        #                     --provenance=true --secret id=cosign.key,src=<< parameters.sign-key >> \
+        #                     --attest=type=sbom \
+        #                     --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
+        #                     --file << parameters.dockerfile >> \
+        #                     <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
+        #                     << parameters.path >>

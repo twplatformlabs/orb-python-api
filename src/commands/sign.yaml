@@ -63,7 +63,7 @@ steps:
       name: Sign oci image and store signature to registry
       command: |
         digest=$(cat digest)
-        imageref="<< parameters.registry >>/<< parameters.image >>:${digest}"
+        imageref="<< parameters.registry >>/<< parameters.image >>@${digest}"
         cosign sign --yes --recursive --key << parameters.sign-key >> \
             <<#parameters.attestations>> << parameters.attestations >> <</parameters.attestations>> \
             "$imageref"

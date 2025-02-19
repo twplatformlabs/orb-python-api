@@ -59,7 +59,7 @@ parameters:
 
 steps:
   - run:
-      name: Amd/Arm Multiarch Build with bill-of-materials
+      name: Amd/Arm Multiarch Build
       command: |
         str="<< parameters.image >>.<< parameters.tag >>.build.out"
         outfile=${str#*/}
@@ -71,18 +71,3 @@ steps:
                             <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
                             --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
                             << parameters.path >> 2>&1 | tee workspace/$outfile
-
-  # - run:
-  #     name: sign image
-  #     command: |
-  #       cosign sign --yes --recursive --key << parameters.sign-key >> "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" $(cat digest)
-  #       cosign verify --key << parameters.verify-key >> << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
-
-  #       # docker buildx build --progress plain --push \
-  #       #                     --platform linux/amd64,linux/arm64 \
-  #       #                     --provenance=true --secret id=cosign.key,src=<< parameters.sign-key >> \
-  #       #                     --attest=type=sbom \
-  #       #                     --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
-  #       #                     --file << parameters.dockerfile >> \
-  #       #                     <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-  #       #                     << parameters.path >>

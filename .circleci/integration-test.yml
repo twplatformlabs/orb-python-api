@@ -49,7 +49,7 @@ jobs:
 
   test static analysis commands:
     docker:
-      - image: twdps/circleci-python-builder:alpine-stable
+      - image: twdps/circleci-python-builder:stable
     steps:
       - checkout
       - setup_remote_docker

@@ -61,6 +61,7 @@ steps:
   - run:
       name: Amd/Arm Multiarch Build
       command: |
+        docker system prune --all -f
         str="<< parameters.image >>.<< parameters.tag >>.build.out"
         outfile=${str#*/}
         docker -v

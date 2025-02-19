@@ -39,7 +39,7 @@ parameters:
 
 steps:
   - run:
-      name: Docker Build
+      name: Local test build
       command: |
         str="<< parameters.image >>.<< parameters.tag >>.build.out"
         outfile=${str#*/}

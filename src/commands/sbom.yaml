@@ -2,7 +2,9 @@
 # yamllint disable rule:line-length
 ---
 
-description: generate sbom for the image and write to OCI compatible registry. Assumes manifestif is present.
+description: |
+  generate sbom for the image and write to OCI compatible registry.
+  Assumes digest is present. Digest is fetched by the sign command.
 
 parameters:
 
@@ -29,7 +31,7 @@ parameters:
 steps:
   - run:
       name: generate sbom using syft
-      command: syft packages --verbose --output spdx-json $(cat manifestid) > << parameters.sbom-filename >>
+      command: syft packages --verbose --output spdx-json $(cat digest) > << parameters.sbom-filename >>
   - run:
       name: push sbom to container registry
       command: |
@@ -40,6 +42,4 @@ steps:
         fi
         echo "REGISTRY_SED = ${REGISTRY_SED}"
         echo ${<< parameters.registry-password >>} | oras login $REGISTRY_LOGIN -u ${<< parameters.registry-login >>} --password-stdin
-        oras push --artifact-type 'application/vnd.unknown.config.v1+json' << parameters.registry >>/$(cat manifestid | sed "s/$REGISTRY_SED//g" | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json
-
-#oras push --artifact-type 'application/vnd.unknown.config.v1+json' << parameters.registry >>/$(cat manifestid | sed 's/<< parameters.registry >>\///g' | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json
+        oras push --artifact-type 'application/vnd.unknown.config.v1+json' << parameters.registry >>/$(cat digest | sed "s/$REGISTRY_SED//g" | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json

@@ -57,15 +57,12 @@ steps:
           exit 1
         fi
   - run:
-      name: get image manifest
-      command: |
-        docker buildx imagetools inspect ghcr.io/thoughtworks-dps/hello-restful:dev.a0d6f99 --raw | jq -r '.manifests[0].digest' > digest
-        echo "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>@" > manifestid
-        cat digest >> manifestid
+      name: fetch digest
+      command: crane digest << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> > digest
   - run:
       name: Sign oci image and store signature to registry
       command: |
         cosign sign --yes --recursive --key << parameters.sign-key >> \
             <<#parameters.attestations>> << parameters.attestations >> <</parameters.attestations>> \
-            $(cat manifestid)
+            $(cat digest)
         cosign verify --key << parameters.verify-key >> << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>

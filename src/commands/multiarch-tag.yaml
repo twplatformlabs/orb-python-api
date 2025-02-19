@@ -1,8 +1,8 @@
-# src/commands/tag.yaml
+# src/commands/multi-tag.yaml
 # yamllint disable rule:line-length
 ---
 
-description: Pull docker image from registry
+description: Add release tag to multi-arch manifest and pull local copy of digest
 
 parameters:
 

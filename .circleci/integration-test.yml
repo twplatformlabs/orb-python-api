@@ -56,8 +56,8 @@ jobs:
       - python-api/packages:
           package-manager: pip
           install-dev: true
-          pip-requirements-filename: custom_requirements_filename.txt
-          pip-requirements-filename-dev: custom_dev_requirements_filename.txt
+          pip-requirements-filename: test/custom_requirements_filename.txt
+          pip-requirements-filename-dev: test/custom_dev_requirements_filename.txt
       - run:
           name: confirm installed packages from custom requirements and dev requirements files
           command: |
@@ -81,7 +81,7 @@ jobs:
             set -exo pipefail
             cat hadolint-outfile | grep "Haskell"
 
-
+  test static-analysis job:
 
   # test versioned machine package installs:
   #   machine:

@@ -5,12 +5,12 @@
 description: |
   hadolint:
 
-  - Runs docker version of hadolint
+  - run hadolint against Dockerfile
 
 parameters:
 
   dockerfile:
-    description: Name of dockerfile.
+    description: Name of dockerfile. Default is Dockerfile.
     type: string
     default: Dockerfile
 

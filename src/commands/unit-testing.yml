@@ -3,7 +3,7 @@
 ---
 
 description: |
-  Run pytest against parameter target or . by default, optionally report
+  Run pytest against parameter target or . by default, optionally report results.
 
   - report-coverage currently supports only Codacy, requires Codacy account-api-token
     environment variables to be available in the environment

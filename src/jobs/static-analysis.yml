@@ -9,7 +9,7 @@ description: |
     - package-manager: [pip | pipenv | none*] Use python package manager.
     - install-dev: [true | false*] Install development packages during static analysis.
     - lint-path: [ .* | <path> | none] Run pylint on lint-path.
-    - hado-lint: [true* | false] Run hadolint on Dockerfile.
+    - hadolint: [true* | false] Run hadolint on Dockerfile.
     - unit-test: [true* | false] Run pytest unit test.
     - coverage: [true* | false] Calculate unit test coverage.
     - afer-checkout: [] Add custom steps to run immediately after code checkout.
@@ -133,14 +133,24 @@ steps:
       name: Run after_checkout lifecycle hook steps
       condition: << parameters.after-checkout >>
       steps: << parameters.after-checkout >>
-  - packages:
-      package-manager: << parameters.package-manager >>
-      install-dev: << parameters.install-dev >>
-      pip-requirements-filename: << parameters.pip-requirements-filename >>
-      pip-requirements-filename-dev: << parameters.pip-requirements-filename-dev >>
-  - lint:
-      lint-path: << parameters.lint-path >>
-      pylint-options: << parameters.pylint-options >>
+  - when:
+      name: Install python packages
+      condition:
+        not:
+          equal: ["none", << parameters.package-manager >>]
+      steps:
+        - packages:
+            package-manager: << parameters.package-manager >>
+            install-dev: << parameters.install-dev >>
+            pip-requirements-filename: << parameters.pip-requirements-filename >>
+            pip-requirements-filename-dev: << parameters.pip-requirements-filename-dev >>
+  - unless:
+      condition:
+        equal: ["none", << parameters.lint-path >>]
+      steps:
+        - lint:
+            lint-path: << parameters.lint-path >>
+            pylint-options: << parameters.pylint-options >>
   - when:
       name: hadolint dockerfile
       condition: << parameters.hadolint >>

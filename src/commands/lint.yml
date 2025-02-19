@@ -5,7 +5,7 @@
 description: |
   pylint:
 
-  - Run pylint against lint-path. Set to "none" to skip. Default is  "."
+  - Run pylint against lint-path. Default is  "."
   - Specify additional pylint options using parameters.pylint-options.
 
 parameters:
@@ -21,10 +21,8 @@ parameters:
     default: ""
 
 steps:
-  - unless:
-      condition:
-        equal: ["none", << parameters.lint-path >>]
-      steps:
-        - run:
-            name: Pylint << parameters.lint-path >>
-            command: pylint << parameters.lint-path >> <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>
+  - run:
+      name: Pylint << parameters.lint-path >>
+      command: pylint \
+               << parameters.lint-path >> \
+               <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>

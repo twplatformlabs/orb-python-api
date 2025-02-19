@@ -54,7 +54,6 @@ workflows:
             - shellcheck/check
             - orb-tools/pack
 
-
   #     - orb-tools/continue:
   #         name: Launch integration test pipeline
   #         context: *context

@@ -3,7 +3,7 @@
 ---
 
 description: |
-  (Optional) Install python packages. Use 'install-dev: true' to include development packages.
+  (Optional) Install python packages. Supports pip or pipenv. Use 'install-dev: true' to include development packages.
 
 parameters:
 
@@ -30,29 +30,23 @@ parameters:
 
 steps:
   - when:
-      name: Install python packages
+      name: Install requirements from Pipfile
       condition:
-        not:
-          equal: ["none", << parameters.package-manager >>]
+        equal: ["pipenv", << parameters.package-manager >>]
       steps:
-        - when:
-            name: Install requirements from Pipfile
-            condition:
-              equal: ["pipenv", << parameters.package-manager >>]
-            steps:
-              - run:
-                  name: Generate requirements.txt from Pipfile
-                  command: |
-                    pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
-                    pip list
-        - when:
-            name: Install requirements from Pipfile
-            condition:
-              equal: ["pip", << parameters.package-manager >>]
-            steps:
-              - run:
-                  name: Install packages
-                  command: |
-                    <<#parameters.install-dev>>pip install -r << parameters.pip-requirements-filename-dev >><</parameters.install-dev>>
-                    pip install -r << parameters.pip-requirements-filename >>
-                    pip list
+        - run:
+            name: Generate requirements.txt from Pipfile
+            command: |
+              pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
+              pip list
+  - when:
+      name: Install requirements from Pipfile
+      condition:
+        equal: ["pip", << parameters.package-manager >>]
+      steps:
+        - run:
+            name: Install packages
+            command: |
+              <<#parameters.install-dev>>pip install -r << parameters.pip-requirements-filename-dev >><</parameters.install-dev>>
+              pip install -r << parameters.pip-requirements-filename >>
+              pip list

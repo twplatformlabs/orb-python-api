@@ -1,0 +1,158 @@
+---
+version: 2.1
+
+orbs:
+  python-api: twdps/python-api@dev:<<pipeline.git.revision>>
+  op: twdps/onepassword@3.0.0
+
+globals:
+  - &context orb-publishing
+
+# commands:
+
+#   set-environment:
+#     steps:
+#       - op/env:
+#           env-file: op.env
+
+  # echo-message:
+  #   parameters:
+  #     msg:
+  #       type: string
+  #   steps:
+  #     - run:
+  #         name: echo msg
+  #         command: echo "<< parameters.msg >>"
+
+  # check-artifacts:
+  #   parameters:
+  #     filename:
+  #       description: name of artifact file to confirm
+  #       type: string
+  #   steps:
+  #     - run:
+  #         name: validate build log artifact
+  #         command: |
+  #           #!/usr/bin/env bash
+  #           set -eo pipefail
+
+  #           echo "validate file:<< parameters.filename >> exists"
+  #           if [ -f "<< parameters.filename >>" ]; then
+  #             echo "<< parameters.filename >> contents"
+  #             cat "<< parameters.filename >>"
+  #           else
+  #             echo "File << parameters.filename >> does not exist."
+  #             exit 1
+  #           fi
+
+jobs:
+
+  test static analysis commands:
+    docker:
+      - image: twdps/circleci-python-builder:alpine-stable
+    steps:
+      - checkout
+      - setup_remote_docker
+      - python-api/packages:
+          package-manager: pip
+          install-dev: true
+          pip-requirements-filename: custom_requirements_filename.txt
+          pip-requirements-filename-dev: custom_dev_requirements_filename.txt
+      - run:
+          name: confirm installed packages from custom requirements and dev requirements files
+          command: |
+            set -exo pipefail
+            pip list | grep "fastapi"
+            pip list | grep "uvicorn"
+      - python-api/lint:
+          lint-path: ""
+          pylint-options: "--version > pylint-outfile"
+      - run:
+          name: confirm pylint installation and parameters
+          command: |
+            set -exo pipefail
+            cat pylint-outfile | grep "pylint"
+      - python-api/hadolint:
+          dockerfile: ""
+          hadolint-additional-args: "--version > hadolint-outfile"
+      - run:
+          name: confirm hadolint installation and parameters
+          command: |
+            set -exo pipefail
+            cat hadolint-outfile | grep "Haskell"
+
+
+
+  # test versioned machine package installs:
+  #   machine:
+  #     image: ubuntu-2204:current
+  #   resource_class: medium
+  #   steps:
+  #     - checkout
+  #     - executor-tools/install:
+  #         bats-version: 1.10.0
+  #         hadolint-version: 2.12.0
+  #         snyk-version: 1.1268.0
+  #         trivy-version: 0.48.2
+  #         grype-version: 0.74.0
+  #         cosign-version: 2.2.1
+  #         syft-version: 1.4.0
+  #         oras-version: 1.2.0
+  #         gren-version: 0.17.1
+  #         op-version: 2.29.0
+  #         vault-version: 1.15.6-1
+  #     - run:
+  #         name: confirm installed version for available packages
+  #         command: |
+  #           set -exo pipefail
+  #           bats --version | grep "1.10.0"
+  #           hadolint --version | grep "2.12.0"
+  #           snyk --version | grep "1.1268.0"
+  #           trivy --version | grep "0.48.2"
+  #           grype --version | grep "0.74.0"
+  #           cosign version | grep "2.2.1"
+  #           syft version | grep "1.4.0"
+  #           oras version | grep "1.2.0"
+  #           gren --version | grep "0.17.1"
+  #           op --version | grep "2.29.0"
+  #           vault version | grep "1.15.6"
+
+  # test machine package installs using latest:
+  #   machine:
+  #     image: ubuntu-2204:current
+  #   resource_class: medium
+  #   steps:
+  #     - checkout
+  #     - executor-tools/install:
+  #         bats-version: latest
+  #         hadolint-version: latest
+  #         snyk-version: latest
+  #         trivy-version: latest
+  #         grype-version: latest
+  #         cosign-version: latest
+  #         syft-version: latest
+  #         oras-version: latest
+  #         gren-version: latest
+  #         op-version: latest
+  #         vault-version: latest
+  #     - run:
+  #         name: confirm installed version for available packages
+  #         command: |
+  #           set -exo pipefail
+  #           bats --help | grep "bats"
+  #           hadolint --help | grep "hadolint"
+  #           snyk --help | grep "Snyk"
+  #           trivy --help | grep "trivy"
+  #           grype --help | grep "grype"
+  #           cosign --help | grep "cosign"
+  #           syft --help | grep "syft"
+  #           oras --help | grep "oras"
+  #           gren --help | grep "gren"
+  #           op --help | grep "1Password"
+  #           vault --help | grep "vault"
+
+workflows:
+
+  integration tests:
+    jobs:
+      - test static analysis commands

@@ -23,6 +23,4 @@ parameters:
 steps:
   - run:
       name: Pylint << parameters.lint-path >>
-      command: pylint \
-               << parameters.lint-path >> \
-               <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>
+      command: pylint << parameters.lint-path >> <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>

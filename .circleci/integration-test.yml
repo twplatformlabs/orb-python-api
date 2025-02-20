@@ -94,7 +94,7 @@ workflows:
           package-manager: pip
           install-dev: true
           pip-requirements-filename: test/requirements.txt
-          pip-requirements-filename-dev: tests/requirements-dev.txt
+          pip-requirements-filename-dev: test/requirements-dev.txt
           lint-path: api
           hadolint: false
           coverage: true

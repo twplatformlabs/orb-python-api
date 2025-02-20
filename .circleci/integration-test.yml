@@ -122,3 +122,24 @@ workflows:
                 command: echo "after-push"
           # requires:
           #   - test static-analysis job
+
+      - python-api/publish-image:
+          name: test publish job
+          context: *context
+          image: *image
+          registry: *registry
+          publish-tag: $CIRCLE_JOB
+          before-push:
+            - set-environment
+          requires:
+            - test oci-image-build job
+
+  attestations:
+    description: attestations to include in signature
+    type: string
+    default: ""
+
+  sbom-filename: sbom.spdx
+
+  before-push:
+  after-push:

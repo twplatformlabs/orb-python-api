@@ -27,6 +27,7 @@ steps:
   - run:
       name: Tag a local docker image
       command: |
+        echo "tag build << parameters.build-tag >> with << parameters.release-tag >>"
         docker buildx imagetools create \
           --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.release-tag >>" \
                 "<< parameters.registry >>/<< parameters.image >>:<< parameters.build-tag >>"

@@ -1,1 +1,5 @@
 .python-version
+.pytest*
+.venv
+.coverage
+coverage.xml

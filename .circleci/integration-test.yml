@@ -85,6 +85,24 @@ workflows:
 
   integration tests:
     jobs:
-      - test static analysis commands
+      # - test static analysis commands
 
-      # - python-api/statis-analysis:
+      - python-api/statis-analysis:
+          shell: /bin/bash -eo pipefail
+          executor-image: twdps/circleci-python-builder:stable
+          executor-resource-class: large
+          package-manager: pip
+          install-dev: true
+          pip-requirements-filename: test/requirements.txt
+          pip-requirements-filename-dev: tests/requirements-dev.txt
+          lint-path: api
+          hadolint: false
+          coverage: true
+          after-checkout:
+            - run:
+                name: after-checkout message
+                command: echo "after-checkout"
+          after-analysis:
+            - run:
+                name: after-analysis message
+                command: echo "after-analysis"

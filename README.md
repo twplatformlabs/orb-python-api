@@ -18,6 +18,3 @@ Features include:
 - Can provide custom job steps; before-build, after-build, after-push
 - static analysis based on: pylint, pytest, hadolint
 - supports codeclimate test reporting
-
-
-docker buildx imagetools inspect "ghcr.io/thoughtworks-dps/hello-restful:dev.4717a97" --raw | jq -r '.manifests[0].digest'

@@ -7,43 +7,25 @@ orbs:
 
 globals:
   - &context orb-publishing
+  - &image orb-python-api
+  - &registry ghcr.io/thoughtworks-dps
 
-# commands:
+commands:
 
-#   set-environment:
-#     steps:
-#       - op/env:
-#           env-file: op.env
-
-  # echo-message:
-  #   parameters:
-  #     msg:
-  #       type: string
-  #   steps:
-  #     - run:
-  #         name: echo msg
-  #         command: echo "<< parameters.msg >>"
-
-  # check-artifacts:
-  #   parameters:
-  #     filename:
-  #       description: name of artifact file to confirm
-  #       type: string
-  #   steps:
-  #     - run:
-  #         name: validate build log artifact
-  #         command: |
-  #           #!/usr/bin/env bash
-  #           set -eo pipefail
-
-  #           echo "validate file:<< parameters.filename >> exists"
-  #           if [ -f "<< parameters.filename >>" ]; then
-  #             echo "<< parameters.filename >> contents"
-  #             cat "<< parameters.filename >>"
-  #           else
-  #             echo "File << parameters.filename >> does not exist."
-  #             exit 1
-  #           fi
+  set-environment:
+    steps:
+      - op/env
+      - run:
+          name: set version var
+          command: |
+            echo "export API_VERSION=dev.${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+            source $BASH_ENV
+      - op/write-to-file:
+          op-value: empc-lab/svc-cosign-private-key/notesPlain
+          out-file: cosign.key
+      - op/write-to-file:
+          op-value: empc-lab/svc-cosign-public-key/notesPlain
+          out-file: cosign.pub
 
 jobs:
 
@@ -87,22 +69,56 @@ workflows:
     jobs:
       # - test static analysis commands
 
-      - python-api/static-analysis:
+      # - python-api/static-analysis:
+      #     name: test static-analysis job
+      #     shell: /bin/bash -eo pipefail
+      #     executor-image: twdps/circleci-python-builder:stable
+      #     executor-resource-class: large
+      #     package-manager: pip
+      #     install-dev: true
+      #     pip-requirements-filename: test/requirements.txt
+      #     pip-requirements-filename-dev: test/requirements-dev.txt
+      #     lint-path: api
+      #     hadolint: false
+      #     coverage: true
+      #     after-checkout:
+      #       - run:
+      #           name: after-checkout message
+      #           command: echo "after-checkout"
+      #     after-analysis:
+      #       - run:
+      #           name: after-analysis message
+      #           command: echo "after-analysis"
+
+      - python-api/oci-image-build:
+          name: test oci-image-build job
+          context: *context
+          image: *image
+          registry: *registry
           shell: /bin/bash -eo pipefail
-          executor-image: twdps/circleci-python-builder:stable
-          executor-resource-class: large
-          package-manager: pip
-          install-dev: true
-          pip-requirements-filename: test/requirements.txt
-          pip-requirements-filename-dev: test/requirements-dev.txt
-          lint-path: api
-          hadolint: false
-          coverage: true
-          after-checkout:
+          executor-machine: ubuntu-2204:current
+          executor-resource-class: medium
+          dockerfile: test/Dockerfile
+          cve-scan: true
+          snyk-severity-threshold: "low"
+          snyk-organization: twdps
+          snyk-skip-base-image: true
+          health-url: "http://0.0.0.0:8000/v1/test/healthz"
+          port-definition: "8000:8000"
+          docker-run-arguments: "-e API_VERSION=dev.${CIRCLE_SHA1:0:7}"
+          startup-delay: 5
+          before-build:
+            - set-environment
             - run:
-                name: after-checkout message
-                command: echo "after-checkout"
-          after-analysis:
+                name: before-build message
+                command: echo "before-build"
+          after-build:
             - run:
-                name: after-analysis message
-                command: echo "after-analysis"
+                name: after-build message
+                command: echo "after-build"
+          after-push:
+            - run:
+                name: after-push message
+                command: echo "after-push"
+          # requires:
+          #   - test static-analysis job

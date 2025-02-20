@@ -42,26 +42,55 @@ parameters:
 
 steps:
   - run:
-      name: generate sbom for each architecture using syft
+      name:
       command: |
-        syft --platform amd64  << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> -o spdx-json > workspace/sbom-amd64.json
-        syft --platform arm64  << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> -o spdx-json > workspace/sbom-arm64.json
-  - run:
-      name: attach sbom as attestation on signature
-      command: |
-        # get digest for each architecture
+        echo "get digest ID for each architecture"
         amd_digest=$(crane digest --platform linux/amd64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
         arm_digest=$(crane digest --platform linux/arm64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
 
-        # add to signatures as attestation
-        cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-amd64.json "<< parameters.registry >>/<< parameters.image >>@$amd_digest"
-        cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-arm64.json "<< parameters.registry >>/<< parameters.image >>@$arm_digest"
+        #export amd_digest=$(crane digest --platform linux/amd64 ghcr.io/thoughtworks-dps/orb-python-api:445)
+        #export arm_digest=$(crane digest --platform linux/arm64 ghcr.io/thoughtworks-dps/orb-python-api:445)
 
-        cosign attach attestation --key cosign.key --type sbom workspace/sbom-amd64.json "ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
-        cosign attach attestation --key cosign.key --type sbom workspace/sbom-arm64.json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
+        echo "set image@digest uris"
+        amd_image="<< parameters.registry >>/<< parameters.image >>@$amd_digest"
+        arm_image="<< parameters.registry >>/<< parameters.image >>@$arm_digest"
+
+        #amd_image="ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
+        #arm_image="ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
+
+        echo "generate sboms for each architecture"
+        syft --platform amd64  "$amd_image" -o spdx-json > workspace/sbom-amd64.json
+        syft --platform arm64  "$arm_image" -o spdx-json > workspace/sbom-arm64.json
+
+        #syft --platform amd64  "$amd_image" -o spdx-json > sbom-amd64.json
+        #syft --platform arm64  "$arm_image" -o spdx-json > sbom-arm64.json
+
+        echo "generate signatures and In-Toto attestations"
+        cosign attest --key << parameters.sign-key >> --type spdx --predicate sbom-amd64.json "$amd_image" > attestation-amd64.json
+        cosign attest --key << parameters.sign-key >> --type spdx --predicate sbom-arm64.json "$arm_image" > attestation-arm64.json
+
+        cosign attest --key cosign.key --type spdx --predicate sbom-amd64.json --output-file attestation-amd64.json --no-upload=true "$amd_image"
+        cosign attest --key cosign.key --type spdx --predicate sbom-arm64.json --output-file attestation-arm64.json --no-upload=true "$arm_image"
+
+        oras attach --artifact-type application/vnd.in-toto+json "$amd_image" attestation-amd64.json:application/json
+        oras attach --artifact-type application/vnd.in-toto+json "$arm_image" attestation-arm64.json:application/json
 
 
-        syft attest --key cosign.key -o spdx-json ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest
+  # - run:
+  #     name: attach sbom as attestation on signature
+  #     command: |
+  #       # get digest for each architecture
 
-        oras attach --artifact-type application/vnd.spdx.sbom.v1+json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest" sbom-arm64.json:application/spdx+json
-        oras attach ghcr.io/thoughtworks-dps/orb-python-api@sha256:amd64_digest_value sbom-amd64.json:application/spdx+json
+
+  #       # add to signatures as attestation
+  #       cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-amd64.json "<< parameters.registry >>/<< parameters.image >>@$amd_digest"
+  #       cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-arm64.json "<< parameters.registry >>/<< parameters.image >>@$arm_digest"
+
+  #       cosign attach attestation --key cosign.key --type sbom workspace/sbom-amd64.json "ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
+  #       cosign attach attestation --key cosign.key --type sbom workspace/sbom-arm64.json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
+
+
+  #       syft attest --key cosign.key -o spdx-json ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest
+
+  #       oras attach --artifact-type application/vnd.spdx.sbom.v1+json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest" sbom-arm64.json:application/spdx+json
+  #       oras attach ghcr.io/thoughtworks-dps/orb-python-api@sha256:amd64_digest_value sbom-amd64.json:application/spdx+json

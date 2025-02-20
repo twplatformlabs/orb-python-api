@@ -27,7 +27,6 @@ steps:
   - run:
       name: Tag a local docker image
       command: |
-        echo "job tag $CIRCLE_JOB"
         docker buildx imagetools create \
           --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.release-tag >>" \
                 "<< parameters.registry >>/<< parameters.image >>:<< parameters.build-tag >>"

@@ -128,7 +128,7 @@ workflows:
           context: *context
           image: *image
           registry: *registry
-          publish-tag: $CIRCLE_JOB
+          publish-tag: $CIRCLE_BUILD_NUM
           before-push:
             - set-environment
             - run:

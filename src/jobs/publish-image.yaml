@@ -117,14 +117,14 @@ steps:
       image: << parameters.image >>
       build-tag: << parameters.pull-tag >>
       release-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
-  # - sign:
-  #     registry: << parameters.registry >>
-  #     image: << parameters.image >>
-  #     tag: << parameters.publish-tag >><< parameters.tag-annotation >>
-  #     attestations: << parameters.attestations >>
-  #     sign-key: << parameters.sign-key >>
-  #     verify-key: << parameters.verify-key >>
-  #     cosign-password: << parameters.cosign-password >>
+  - sign:
+      registry: << parameters.registry >>
+      image: << parameters.image >>
+      tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+      attestations: << parameters.attestations >>
+      sign-key: << parameters.sign-key >>
+      verify-key: << parameters.verify-key >>
+      cosign-password: << parameters.cosign-password >>
   # - sbom:
   #     registry: << parameters.registry >>
   #     registry-login: << parameters.registry-login >>

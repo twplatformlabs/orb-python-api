@@ -131,15 +131,15 @@ workflows:
           publish-tag: $CIRCLE_JOB
           before-push:
             - set-environment
+            - run:
+                name: before-push message
+                command: echo "before-push"
+          after-push:
+            - set-environment
+            - run:
+                name: after-push message
+                command: echo "after-push"
           requires:
             - test oci-image-build job
 
-  attestations:
-    description: attestations to include in signature
-    type: string
-    default: ""
-
-  sbom-filename: sbom.spdx
-
-  before-push:
-  after-push:
+  # attestations:

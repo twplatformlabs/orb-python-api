@@ -108,6 +108,9 @@ steps:
       name: Run before_push lifecycle hook steps.
       condition: << parameters.before-push >>
       steps: << parameters.before-push >>
+  - run:
+      name: setup artifact workspace
+      command: mkdir -p workspace
   - confirm-registry:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
@@ -129,8 +132,12 @@ steps:
   #     registry: << parameters.registry >>
   #     registry-login: << parameters.registry-login >>
   #     registry-password: << parameters.registry-password >>
-  #     sbom-filename: << parameters.sbom-filename >>
+  #     image: << parameters.image >>
+  #     tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+  #     sign-key: << parameters.sign-key >>
+  #     cosign-password: << parameters.cosign-password >>
   - when:
       name: Run after_push lifecycle hook steps.
       condition: << parameters.after-push >>
       steps: << parameters.after-push >>
+  - persist-workspace

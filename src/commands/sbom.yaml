@@ -8,11 +8,6 @@ description: |
 
 parameters:
 
-  registry:
-    description: full registry path for writing signature
-    type: string
-    default: docker.io
-
   registry-login:
     description: username for reigstry access
     type: env_var_name
@@ -23,23 +18,50 @@ parameters:
     type: env_var_name
     default: DOCKER_PASSWORD
 
-  sbom-filename:
-    description: name of generate sbom file
+  registry:
+    description: full registry path for writing signature
     type: string
-    default: sbom.spdx
+
+  image:
+    description: Name of image
+    type: string
+
+  tag:
+    description: Value for tag
+    type: string
+
+  sign-key:
+    description: path to private key used to sign image
+    type: string
+    default: cosign.key
+
+  cosign-password:
+    description: signing key passphrase
+    type: env_var_name
+    default: COSIGN_PASSWORD
 
 steps:
   - run:
-      name: generate sbom using syft
-      command: syft packages --verbose --output spdx-json $(cat digest) > << parameters.sbom-filename >>
-  - run:
-      name: push sbom to container registry
+      name: generate sbom for each architecture using syft
       command: |
-        export REGISTRY_LOGIN=<< parameters.registry >>
-        if [[ "<< parameters.registry >>" == *"/"* ]]; then
-          export REGISTRY_SED=$(echo "<< parameters.registry >>/" | sed 's/\//\\\//g')
-          export REGISTRY_LOGIN=$(echo $REGISTRY_LOGIN | sed 's/\/.*//')
-        fi
-        echo "REGISTRY_SED = ${REGISTRY_SED}"
-        echo ${<< parameters.registry-password >>} | oras login $REGISTRY_LOGIN -u ${<< parameters.registry-login >>} --password-stdin
-        oras push --artifact-type 'application/vnd.unknown.config.v1+json' << parameters.registry >>/$(cat digest | sed "s/$REGISTRY_SED//g" | sed 's/:/-/g' | sed 's/@/:/g').spdx << parameters.sbom-filename >>:application/json
+        syft --platform amd64  << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> -o spdx-json > workspace/sbom-amd64.json
+        syft --platform arm64  << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> -o spdx-json > workspace/sbom-arm64.json
+  - run:
+      name: attach sbom as attestation on signature
+      command: |
+        # get digest for each architecture
+        amd_digest=$(crane digest --platform linux/amd64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
+        arm_digest=$(crane digest --platform linux/arm64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
+
+        # add to signatures as attestation
+        cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-amd64.json "<< parameters.registry >>/<< parameters.image >>@$amd_digest"
+        cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-arm64.json "<< parameters.registry >>/<< parameters.image >>@$arm_digest"
+
+        cosign attach attestation --key cosign.key --type sbom workspace/sbom-amd64.json "ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
+        cosign attach attestation --key cosign.key --type sbom workspace/sbom-arm64.json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
+
+
+        syft attest --key cosign.key -o spdx-json ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest
+
+        oras attach --artifact-type application/vnd.spdx.sbom.v1+json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest" sbom-arm64.json:application/spdx+json
+        oras attach ghcr.io/thoughtworks-dps/orb-python-api@sha256:amd64_digest_value sbom-amd64.json:application/spdx+json

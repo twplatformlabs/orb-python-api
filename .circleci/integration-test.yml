@@ -93,8 +93,8 @@ workflows:
       - python-api/oci-image-build:
           name: test oci-image-build job
           context: *context
-          image: *image
           registry: *registry
+          image: *image
           shell: /bin/bash -eo pipefail
           executor-machine: ubuntu-2204:current
           executor-resource-class: medium

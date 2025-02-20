@@ -40,7 +40,7 @@ RUN apk add --no-cache \
 
 WORKDIR /opt/app
 COPY api/ api/
-COPY requirements.txt requirements.txt
+COPY test/requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt && chmod -R 777 /opt/app
 

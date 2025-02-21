@@ -30,16 +30,6 @@ parameters:
     description: Value for tag
     type: string
 
-  sign-key:
-    description: path to private key used to sign image
-    type: string
-    default: cosign.key
-
-  cosign-password:
-    description: signing key passphrase
-    type: env_var_name
-    default: COSIGN_PASSWORD
-
 steps:
   - run:
       name:
@@ -48,49 +38,19 @@ steps:
         amd_digest=$(crane digest --platform linux/amd64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
         arm_digest=$(crane digest --platform linux/arm64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
 
-        #export amd_digest=$(crane digest --platform linux/amd64 ghcr.io/thoughtworks-dps/orb-python-api:445)
-        #export arm_digest=$(crane digest --platform linux/arm64 ghcr.io/thoughtworks-dps/orb-python-api:445)
-
-        echo "set image@digest uris"
+        echo "set image@digest readuri"
         amd_image="<< parameters.registry >>/<< parameters.image >>@$amd_digest"
         arm_image="<< parameters.registry >>/<< parameters.image >>@$arm_digest"
-
-        #amd_image="ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
-        #arm_image="ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
 
         echo "generate sboms for each architecture"
         syft --platform amd64  "$amd_image" -o spdx-json > workspace/sbom-amd64.json
         syft --platform arm64  "$arm_image" -o spdx-json > workspace/sbom-arm64.json
 
-        #syft --platform amd64  "$amd_image" -o spdx-json > sbom-amd64.json
-        #syft --platform arm64  "$arm_image" -o spdx-json > sbom-arm64.json
+        echo "set image@digest writeuri"
+        amd_sbomfile="<< parameters.registry >>/<< parameters.image >>:${amd_digest//:/-}.sbom"
+        arm_sbomfile="<< parameters.registry >>/<< parameters.image >>:${arm_digest//:/-}.sbom"
 
-        echo "generate signatures and In-Toto attestations"
-        cosign attest --key << parameters.sign-key >> --type spdx --predicate sbom-amd64.json "$amd_image" > attestation-amd64.json
-        cosign attest --key << parameters.sign-key >> --type spdx --predicate sbom-arm64.json "$arm_image" > attestation-arm64.json
-
-        cosign attest --key cosign.key --type spdx --predicate sbom-amd64.json --output-file attestation-amd64.json --no-upload=true "$amd_image"
-        cosign attest --key cosign.key --type spdx --predicate sbom-arm64.json --output-file attestation-arm64.json --no-upload=true "$arm_image"
-
-        oras attach --artifact-type application/vnd.in-toto+json "$amd_image" attestation-amd64.json:application/json
-        oras attach --artifact-type application/vnd.in-toto+json "$arm_image" attestation-arm64.json:application/json
-
-
-  # - run:
-  #     name: attach sbom as attestation on signature
-  #     command: |
-  #       # get digest for each architecture
-
-
-  #       # add to signatures as attestation
-  #       cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-amd64.json "<< parameters.registry >>/<< parameters.image >>@$amd_digest"
-  #       cosign attach attestation --key << parameters.sign-key >> --type sbom workspace/sbom-arm64.json "<< parameters.registry >>/<< parameters.image >>@$arm_digest"
-
-  #       cosign attach attestation --key cosign.key --type sbom workspace/sbom-amd64.json "ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest"
-  #       cosign attach attestation --key cosign.key --type sbom workspace/sbom-arm64.json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest"
-
-
-  #       syft attest --key cosign.key -o spdx-json ghcr.io/thoughtworks-dps/orb-python-api@$amd_digest
-
-  #       oras attach --artifact-type application/vnd.spdx.sbom.v1+json "ghcr.io/thoughtworks-dps/orb-python-api@$arm_digest" sbom-arm64.json:application/spdx+json
-  #       oras attach ghcr.io/thoughtworks-dps/orb-python-api@sha256:amd64_digest_value sbom-amd64.json:application/spdx+json
+        # push sbom to registry
+        echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
+        oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$amd_sbomfile" workspace/sbom-amd64.json:application/spdx+json
+        oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$arm_sbomfile" workspace/sbom-amd64.json:application/spdx+json

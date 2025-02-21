@@ -128,14 +128,12 @@ steps:
       sign-key: << parameters.sign-key >>
       verify-key: << parameters.verify-key >>
       cosign-password: << parameters.cosign-password >>
-  # - sbom:
-  #     registry: << parameters.registry >>
-  #     registry-login: << parameters.registry-login >>
-  #     registry-password: << parameters.registry-password >>
-  #     image: << parameters.image >>
-  #     tag: << parameters.publish-tag >><< parameters.tag-annotation >>
-  #     sign-key: << parameters.sign-key >>
-  #     cosign-password: << parameters.cosign-password >>
+  - sbom:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
+      image: << parameters.image >>
+      tag: << parameters.publish-tag >><< parameters.tag-annotation >>
   - when:
       name: Run after_push lifecycle hook steps.
       condition: << parameters.after-push >>

@@ -11,7 +11,7 @@ steps:
   - persist_to_workspace:
       root: workspace
       paths:
-        - "*.sbom"
+        - "*"
   - store_artifacts:
       path: workspace
       destination: sbom

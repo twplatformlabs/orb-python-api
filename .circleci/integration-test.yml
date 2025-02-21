@@ -67,28 +67,28 @@ workflows:
 
   integration tests:
     jobs:
-      # - test static analysis commands
+      - test static analysis commands
 
-      # - python-api/static-analysis:
-      #     name: test static-analysis job
-      #     shell: /bin/bash -eo pipefail
-      #     executor-image: twdps/circleci-python-builder:stable
-      #     executor-resource-class: large
-      #     package-manager: pip
-      #     install-dev: true
-      #     pip-requirements-filename: test/requirements.txt
-      #     pip-requirements-filename-dev: test/requirements-dev.txt
-      #     lint-path: api
-      #     hadolint: false
-      #     coverage: true
-      #     after-checkout:
-      #       - run:
-      #           name: after-checkout message
-      #           command: echo "after-checkout"
-      #     after-analysis:
-      #       - run:
-      #           name: after-analysis message
-      #           command: echo "after-analysis"
+      - python-api/static-analysis:
+          name: test static-analysis job
+          shell: /bin/bash -eo pipefail
+          executor-image: twdps/circleci-python-builder:stable
+          executor-resource-class: large
+          package-manager: pip
+          install-dev: true
+          pip-requirements-filename: test/requirements.txt
+          pip-requirements-filename-dev: test/requirements-dev.txt
+          lint-path: api
+          hadolint: false
+          coverage: true
+          after-checkout:
+            - run:
+                name: after-checkout message
+                command: echo "after-checkout"
+          after-analysis:
+            - run:
+                name: after-analysis message
+                command: echo "after-analysis"
 
       - python-api/oci-image-build:
           name: test oci-image-build job
@@ -120,8 +120,8 @@ workflows:
             - run:
                 name: after-push message
                 command: echo "after-push"
-          # requires:
-          #   - test static-analysis job
+          requires:
+            - test static-analysis job
 
       - python-api/publish-image:
           name: test publish job
@@ -140,5 +140,3 @@ workflows:
                 command: echo "after-push"
           requires:
             - test oci-image-build job
-
-  # attestations:

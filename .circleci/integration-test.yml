@@ -135,7 +135,6 @@ workflows:
                 name: before-push message
                 command: echo "before-push"
           after-push:
-            - set-environment
             - run:
                 name: after-push message
                 command: echo "after-push"

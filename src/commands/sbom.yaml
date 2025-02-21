@@ -32,7 +32,7 @@ parameters:
 
 steps:
   - run:
-      name:
+      name: Generate sbom for each architecture
       command: |
         echo "get digest ID for each architecture"
         amd_digest=$(crane digest --platform linux/amd64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
@@ -42,6 +42,9 @@ steps:
         amd_image="<< parameters.registry >>/<< parameters.image >>@$amd_digest"
         arm_image="<< parameters.registry >>/<< parameters.image >>@$arm_digest"
 
+        echo "amd_image=$amd_image"
+        echo "arm_image=$arm_image"
+
         echo "generate sboms for each architecture"
         syft --platform amd64  "$amd_image" -o spdx-json > workspace/sbom-amd64.json
         syft --platform arm64  "$arm_image" -o spdx-json > workspace/sbom-arm64.json
@@ -50,7 +53,10 @@ steps:
         amd_sbomfile="<< parameters.registry >>/<< parameters.image >>:${amd_digest//:/-}.sbom"
         arm_sbomfile="<< parameters.registry >>/<< parameters.image >>:${arm_digest//:/-}.sbom"
 
+        echo "amd_sbomfile=$amd_sbomfile"
+        echo "arm_sbomfile=$arm_sbomfile"
+
         # push sbom to registry
-        echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
+        # echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
         oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$amd_sbomfile" workspace/sbom-amd64.json:application/spdx+json
         oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$arm_sbomfile" workspace/sbom-amd64.json:application/spdx+json

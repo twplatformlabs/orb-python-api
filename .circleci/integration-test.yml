@@ -101,7 +101,7 @@ workflows:
           dockerfile: test/Dockerfile
           cve-scan: true
           snyk-severity-threshold: "low"
-          snyk-organization: twdps
+          snyk-organization: twplatformlabs
           snyk-skip-base-image: true
           health-url: "http://0.0.0.0:8000/v1/test/healthz"
           port-definition: "8000:8000"

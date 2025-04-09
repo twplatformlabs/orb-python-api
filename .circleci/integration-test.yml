@@ -8,7 +8,7 @@ orbs:
 globals:
   - &context orb-publishing
   - &image orb-python-api
-  - &registry ghcr.io/thoughtworks-dps
+  - &registry ghcr.io/twplatformlabs
 
 commands:
 
@@ -21,10 +21,10 @@ commands:
             echo "export API_VERSION=dev.${CIRCLE_SHA1:0:7}" >> $BASH_ENV
             source $BASH_ENV
       - op/write-to-file:
-          op-value: empc-lab/svc-cosign-private-key/notesPlain
+          op-value: platform/svc-cosign-private-key/notesPlain
           out-file: cosign.key
       - op/write-to-file:
-          op-value: empc-lab/svc-cosign-public-key/notesPlain
+          op-value: platform/svc-cosign-public-key/notesPlain
           out-file: cosign.pub
 
 jobs:

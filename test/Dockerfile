@@ -1,15 +1,15 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 
 LABEL org.opencontainers.image.created="%%CREATED%%" \
       org.opencontainers.image.authors="nic.cheneweth@thoughtworks.com" \
-      org.opencontainers.image.documentation="https://github.com/ThoughtWorks-DPS/orb-python-api" \
-      org.opencontainers.image.source="https://github.com/ThoughtWorks-DPS/orb-python-api" \
-      org.opencontainers.image.url="https://github.com/ThoughtWorks-DPS/orb-python-api" \
+      org.opencontainers.image.documentation="https://github.com/twplatformlabs/agentic-code-reviewer" \
+      org.opencontainers.image.source="https://github.com/twplatformlabs/agentic-code-reviewer" \
+      org.opencontainers.image.url="https://github.com/twplatformlabs/agentic-code-reviewer" \
       org.opencontainers.image.version="%%VERSION%%" \
       org.opencontainers.image.vendor="ThoughtWorks, Inc." \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.title="orb-python-api-test-fixture" \
-      org.opencontainers.image.description="Test fixture for orb integration testing" \
+      org.opencontainers.image.title="agentic-code-reviewer" \
+      org.opencontainers.image.description="Virtual team member that responds to PRs" \
       org.opencontainers.image.base.name="%%BASE%%"
 
 ENV MUSL_LOCPATH=/usr/share/i18n/locales/musl \
@@ -20,16 +20,16 @@ ENV MUSL_LOCPATH=/usr/share/i18n/locales/musl \
 
 # hadolint ignore=DL3003
 RUN apk add --no-cache \
-        libintl=0.22.5-r0 \
-        openssl=3.3.3-r0 && \
+        libintl=0.24.1-r0 \
+        openssl=3.5.0-r0 && \
     apk --no-cache add --virtual build-dependencies \
-        cmake==3.31.1-r0 \
-        make==4.4.1-r2 \
-        musl==1.2.5-r9 \
-        musl-dev==1.2.5-r9 \
-        musl-utils==1.2.5-r9 \
-        gcc==14.2.0-r4 \
-        gettext-dev==0.22.5-r0 && \
+        cmake==3.31.7-r1 \
+        make==4.4.1-r3 \
+        musl==1.2.5-r10 \
+        musl-dev==1.2.5-r10 \
+        musl-utils==1.2.5-r10 \
+        gcc==14.2.0-r6 \
+        gettext-dev==0.24.1-r0 && \
     wget -q https://gitlab.com/rilian-la-te/musl-locales/-/archive/master/musl-locales-master.zip && \
     unzip musl-locales-master.zip && cd musl-locales-master && \
     cmake -DLOCALE_PROFILE=OFF -D CMAKE_INSTALL_PREFIX:PATH=/usr . && \
@@ -40,7 +40,7 @@ RUN apk add --no-cache \
 
 WORKDIR /opt/app
 COPY api/ api/
-COPY test/requirements.txt requirements.txt
+COPY requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt && chmod -R 777 /opt/app
 

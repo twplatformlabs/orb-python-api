@@ -1,8 +1,6 @@
 <div align="center">
 	<p>
-		<img alt="Thoughtworks Logo" src="https://raw.githubusercontent.com/twplatformlabs/static/master/thoughtworks_flamingo_wave.png?sanitize=true" width=200 />
-    <br />
-		<img alt="DPS Title" src="https://raw.githubusercontent.com/twplatformlabs/static/master/dps_lab_title.png" width=350/>
+		<img alt="Thoughtworks Logo" src="https://raw.githubusercontent.com/twplatformlabs/static/master/psk_banner.png" width=800 />
 	</p>
   <h3>orb-python-api</h3>
   <h5>a workflow orb for test and build of fastAPI python services</h5>

@@ -2,7 +2,6 @@
 test fixture api
 """
 from fastapi import FastAPI
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from .routes import healthz
 from .config import settings, route_prefix
 
@@ -32,5 +31,3 @@ async def root():
     root endpoint and hello response.
     """
     return { "message": "test" }
-
-FastAPIInstrumentor.instrument_app(api)

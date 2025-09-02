@@ -20,13 +20,13 @@ ENV MUSL_LOCPATH=/usr/share/i18n/locales/musl \
 
 # hadolint ignore=DL3003
 RUN apk add --no-cache \
-        libintl=0.24.1-r0 \
-        openssl=3.5.0-r0 && \
+        libintl \
+        openssl && \
     apk --no-cache add --virtual build-dependencies \
-        cmake==3.31.7-r1 \
-        make==4.4.1-r3 \
-        musl==1.2.5-r10 \
-        musl-dev==1.2.5-r10 \
+        cmake \
+        make \
+        musl \
+        musl-dev \
         musl-utils==1.2.5-r10 \
         gcc==14.2.0-r6 \
         gettext-dev==0.24.1-r0 && \

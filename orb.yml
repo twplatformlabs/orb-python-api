@@ -1,0 +1,1913 @@
+version: 2.1
+description: |
+    Continuous integration and secure build for python apis. This is a reference orb for the routine continuous
+    integration lifecycle management of python-based APIs running as OCI containers built from a Dockerfile.
+
+    Currently supported configurations:
+
+    - [pylint](https://github.com/pylint-dev/pylint)
+    - [pytest](https://docs.pytest.org/en/7.3.x/)
+    - test coverage reporting using [Coverage.py](https://coverage.readthedocs.io/en/7.2.7/)
+    - vulnerability scanning using [Synk](https://github.com/snyk/cli)
+    - Dockerfile linting using [hadolint](https://github.com/hadolint/hadolint)
+    - Smoketests of liveness/readiness endpoints
+    - image signing using cosign
+    - generate Dockerfile sbom using syft
+    - support for private dtr compatible registries
+    - support for customer dockerfile path/name, tags, tag annotations
+    - hooks for extrag build args and before|after lifecycle steps
+    - support for custom exeecutor, default is twdps/circleci-python-builder
+    - support for machine-image builds
+
+    Note: version 2.0.0 of twdps/orb-python-api is a breaking change. No backwards compatibility support will be maintained.
+display:
+    home_url: https://github.com/ThoughtWorks-DPS/orb-python-api
+    source_url: https://github.com/ThoughtWorks-DPS/orb-python-api
+commands:
+    build:
+        description: Build oci compatible image from Dockerfile.
+        parameters:
+            dockerfile:
+                default: Dockerfile
+                description: Name of dockerfile.
+                type: string
+            extra-build-args:
+                default: ""
+                description: |
+                    (Optional) Extra flags to pass to docker build. For examples, see https://docs.docker.com/engine/reference/commandline/build
+                type: string
+            image:
+                description: Name of image.
+                type: string
+            path:
+                default: .
+                description: Path to the directory containing your Dockerfile and build context.
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry.
+                type: string
+            tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for tag.
+                type: string
+        steps:
+            - run:
+                command: |
+                    str="<< parameters.image >>.<< parameters.tag >>.build.out"
+                    outfile=${str#*/}
+                    docker -v
+                    docker build \
+                      <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \
+                      -t << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
+                      -f << parameters.dockerfile >> << parameters.path >> 2>&1 | tee workspace/$outfile
+                name: Local test build
+    buildx:
+        description: |
+            Uses buildx with a bake file for advanced builds. Defaults to docker-bake.json, can override.
+
+            Persists the log file to the pipeline workspace and makes available as artifact.
+            Log file name: << parameters.tag >>_build_log.txt
+        parameters:
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker-bake.json file. Default is docker-bake.json.
+                type: string
+            extra-build-args:
+                default: ""
+                description: Extra flags to pass to docker build.
+                type: string
+            tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for image tag. Default is dev.${CIRCLE_SHA1:0:7}.
+                type: string
+            target:
+                default: default
+                description: Bake file build target. Default is default.
+                type: string
+        steps:
+            - run:
+                command: |-
+                    #!/usr/bin/env bash
+                    set -eo pipefail
+
+                    echo "Add $TAG parameter to BASH_ENV."
+                    echo "CIRCLE_SHA1=$CIRCLE_SHA1"
+                    echo "CIRCLE_TAG=$CIRCLE_TAG"
+
+                    # set ENV var to the build commit tag provided by the job
+                    echo "export TAG=$TAG" >> "$BASH_ENV"
+                environment:
+                    TAG: << parameters.tag >>
+                name: Add <<parameters.tag>> to BASH_ENV
+            - run:
+                command: |
+                    str="<< parameters.bake-file >>.<< parameters.target >>.build.out"
+                    outfile=${str#*/}
+                    docker -v
+                    docker buildx create --name builder --driver docker-container --bootstrap --use
+                    docker buildx bake --progress plain --metadata-file metadata.json \
+                      <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
+                      --push -f << parameters.bake-file >> << parameters.target >> 2>&1 | tee workspace/$outfile
+                name: Buildx based on docker bake file configuration.
+    configure-machine:
+        description: Install additional tools on standard circleci ubuntu machine executor for docker build and test.
+        steps:
+            - run:
+                command: |
+                    curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+                    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | sudo tee /etc/apt/sources.list.d/1password.list
+                    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
+                    curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
+                    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+                    curl -sS https://downloads.1password.com/linux/keys/1password.asc | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+                    sudo apt update && sudo apt install 1password-cli
+                    op --version
+                name: install 1password
+            - run:
+                command: npm install -g snyk
+                name: install snyk
+    confirm-registry:
+        description: |
+            Validate the container registry credentials. By default, the $DOCKER_LOGIN and
+            $DOCKER_PASSWORD environment variables will be used to confirm docker login
+            permissions.
+        parameters:
+            registry:
+                default: docker.io
+                description: Docker registry.
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Username for reigstry access.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Password for registry access.
+                type: env_var_name
+        steps:
+            - run:
+                command: |
+                    if [ ! ${<< parameters.registry-login >>-} ]; then
+                      echo "registry access username is not set, will not be able to push image."
+                      exit 1
+                    fi
+
+                    if [ ! ${<< parameters.registry-password >>-} ]; then
+                      echo "registry access password is not set, will not be able to push image."
+                      exit 1
+                    fi
+                name: Confirm Docker registry environment variables are configured and correct
+            - run:
+                command: |
+                    echo 'write to .docker/config.json is secure in ephemeral runtime environment'
+                    echo ${<< parameters.registry-password >>} | docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>
+                name: Confirm Docker registry login
+    cve-scan:
+        description: run snyk-cli:docker tests
+        parameters:
+            dockerfile:
+                default: Dockerfile
+                description: Name of dockerfile
+                type: string
+            image:
+                description: Name of image
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            snyk-additional-args:
+                default: ""
+                description: Additional Snyk CLI command line flags.
+                type: string
+            snyk-organization:
+                description: Name of snyk organization
+                type: string
+            snyk-severity-threshold:
+                default: low
+                description: cve reporting threshold
+                type: string
+            snyk-skip-base-image:
+                default: false
+                description: optionally, skip performing cve scan of base image
+                type: boolean
+            snyk-token:
+                default: SNYK_TOKEN
+                description: snyk api-token
+                type: env_var_name
+            tag:
+                default: dev.$CIRCLE_SHA1
+                description: Value for tag
+                type: string
+        steps:
+            - run:
+                command: |
+                    snyk config set api=${<< parameters.snyk-token >>}
+                    snyk config set org=<< parameters.snyk-organization >>
+                name: configure snyk
+            - run:
+                command: |
+                    str="<< parameters.image >>.<< parameters.tag >>.snyk.out"
+                    outfile=${str#*/}
+                    snyk config set api=${<< parameters.snyk-token >>}
+                    snyk config set org=<< parameters.snyk-organization >>
+                    snyk -v
+                    snyk test <<#parameters.snyk-additional-args>><<parameters.snyk-additional-args>><</parameters.snyk-additional-args>> \
+                              --docker << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
+                              -file=<< parameters.dockerfile >> \
+                              --policy-path=./.snyk \
+                              --severity-threshold=<< parameters.snyk-severity-threshold >> \
+                              <<#parameters.snyk-skip-base-image>>--exclude-base-image-vulns<</parameters.snyk-skip-base-image>> \
+                              2>&1 | tee workspace/$outfile
+                name: snyk docker scan
+    hadolint:
+        description: |
+            hadolint:
+
+            - run hadolint against Dockerfile
+        parameters:
+            dockerfile:
+                default: Dockerfile
+                description: Name of dockerfile. Default is Dockerfile.
+                type: string
+            hadolint-additional-args:
+                default: ""
+                description: Additional Hadolint CLI command line flags.
+                type: string
+        steps:
+            - run:
+                command: hadolint << parameters.hadolint-additional-args >> << parameters.dockerfile >>
+                name: hadolint << parameters.dockerfile >>
+    install:
+        description: |
+            This command will install the specified version of a package if
+            a version is provided or do nothing if not.
+        parameters:
+            cosign-version:
+                default: ""
+                description: Install Cosign CLI version if provided.
+                type: string
+            hadolint-version:
+                default: ""
+                description: Install Hadolint CLI version if provided.
+                type: string
+            op-version:
+                default: ""
+                description: Install 1Password CLI version if provided.
+                type: string
+            oras-version:
+                default: ""
+                description: Install Oras CLI version if provided.
+                type: string
+            syft-version:
+                default: ""
+                description: Install Syft CLI version if provided.
+                type: string
+            trivy-version:
+                default: ""
+                description: Install Trivy CLI version if provided.
+                type: string
+        steps:
+            - when:
+                condition: << parameters.op-version >>
+                steps:
+                    - run:
+                        command: "#!/usr/bin/env bash\nset -eo pipefail\n\nCLI_URL=\"https://app-updates.agilebits.com/product_history/CLI2\"\n\n# Fetch the latest version of 1Password CLI (on stable or beta channel)\nget_latest_cli_version() {\n    conditional_path=\"/beta/\"\n    if [ \"$1\" == \"non_beta\" ]; then\n        conditional_path=\"!/beta/\"\n    fi\n\n    OP_VERSION=\"v$(curl -s \"$CLI_URL\" | awk -v RS='<h3>|</h3>' 'NR % 2 == 0 {gsub(/[[:blank:]]+/, \"\"); gsub(/<span[^>]*>|<\\/span>|[\\r\\n]+/, \"\"); gsub(/&nbsp;.*$/, \"\"); if (!'\"$1\"' && '\"$conditional_path\"'){print; '\"$1\"'=1;}}')\"\n}\n\n# Install op-cli\ninstall_op_cli() {\n    echo \"Installing 1Password CLI version: ${OP_VERSION}\"\n    curl -sSfLo op.zip \"https://cache.agilebits.com/dist/1P/op2/pkg/${OP_VERSION}/op_linux_amd64_${OP_VERSION}.zip\"\n    sudo unzip -od /usr/local/bin op.zip\n    rm op.zip\n}\n\nif [[ \"$OP_VERSION\" == \"latest\" ]]; then\n    get_latest_cli_version non_beta\nelif [[ \"$OP_VERSION\" == \"latest-beta\" ]]; then\n    get_latest_cli_version beta\nelse\n    OP_VERSION=\"v$OP_VERSION\"\nfi\necho \"$OP_VERSION\"\ninstall_op_cli\nop --version\n              "
+                        environment:
+                            OP_VERSION: << parameters.op-version >>
+                        name: install 1password-cli version << parameters.op-version >>
+            - when:
+                condition: << parameters.hadolint-version >>
+                steps:
+                    - run:
+                        command: |-
+                            #!/usr/bin/env bash
+                            set -eo pipefail
+
+                            # Fetch the latest version of hadolint CLI
+                            get_latest_cli_version() {
+                                HADOLINT_VERSION=$(curl -L -s https://api.github.com/repos/hadolint/hadolint/releases/latest | jq -r .tag_name)
+                                HADOLINT_VERSION="${HADOLINT_VERSION//v}"
+                            }
+
+                            # Install hadolint
+                            install_hadolint_cli() {
+                                echo "Installing hadolint version v${HADOLINT_VERSION}"
+                                curl -L "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64" --output hadolint-Linux-x86_64
+                                sudo mv hadolint-Linux-x86_64 /usr/local/bin/hadolint
+                                sudo chmod +x /usr/local/bin/hadolint
+                            }
+
+                            if [[ "$HADOLINT_VERSION" == "latest" ]]; then
+                                get_latest_cli_version
+                            fi
+
+                            install_hadolint_cli
+                            hadolint --version
+                        environment:
+                            HADOLINT_VERSION: << parameters.hadolint-version >>
+                        name: install hadolint version << parameters.hadolint-version >>
+            - when:
+                condition: << parameters.trivy-version >>
+                steps:
+                    - run:
+                        command: |-
+                            #!/usr/bin/env bash
+                            set -eo pipefail
+
+                            # Fetch the latest version of trivy CLI
+                            get_latest_cli_version() {
+                                TRIVY_VERSION=$(curl -L -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | jq -r .tag_name)
+                                TRIVY_VERSION="${TRIVY_VERSION//v}"
+                            }
+
+                            # Install trivy
+                            install_trivy_cli() {
+                                echo "Installing trivy version v${TRIVY_VERSION}"
+                                curl -L "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" --output "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+                                sudo tar -xzf "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -C /usr/local/bin trivy
+                                rm "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+                            }
+
+                            if [[ "$TRIVY_VERSION" == "latest" ]]; then
+                                get_latest_cli_version
+                            fi
+
+                            install_trivy_cli
+                            trivy version
+                        environment:
+                            TRIVY_VERSION: << parameters.trivy-version >>
+                        name: install trivy version << parameters.trivy-version >>
+            - when:
+                condition: << parameters.cosign-version >>
+                steps:
+                    - run:
+                        command: |-
+                            #!/usr/bin/env bash
+                            set -eo pipefail
+
+                            # Fetch the latest version of cosign CLI
+                            get_latest_cli_version() {
+                                COSIGN_VERSION=$(curl -L -s https://api.github.com/repos/sigstore/cosign/releases/latest | jq -r .tag_name)
+                                COSIGN_VERSION="${COSIGN_VERSION//v}"
+                            }
+
+                            # Install cosign
+                            install_cosign_cli() {
+                                echo "Installing cosign version v${COSIGN_VERSION}"
+                                curl -L "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64" --output cosign
+                                chmod +x cosign && sudo mv cosign /usr/local/bin/cosign
+                            }
+
+                            if [[ "$COSIGN_VERSION" == "latest" ]]; then
+                                get_latest_cli_version
+                            fi
+
+                            install_cosign_cli
+                            cosign version
+                        environment:
+                            COSIGN_VERSION: << parameters.cosign-version >>
+                        name: install cosign version << parameters.cosign-version >>
+            - when:
+                condition: << parameters.oras-version >>
+                steps:
+                    - run:
+                        command: |-
+                            #!/usr/bin/env bash
+                            set -eo pipefail
+
+                            # Fetch the latest version of Oras CLI
+                            get_latest_cli_version() {
+                                ORAS_VERSION=$(curl -L -s https://api.github.com/repos/oras-project/oras/releases/latest | jq -r .tag_name)
+                                ORAS_VERSION="${ORAS_VERSION//v}"
+                            }
+
+                            # Install oras
+                            install_oras_cli() {
+                                echo "Installing oras version v${ORAS_VERSION}"
+                                curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+                                mkdir -p oras-install &&
+                                tar -zxf "oras_${ORAS_VERSION}_linux_amd64.tar.gz" -C oras-install/
+                                sudo mv oras-install/oras /usr/local/bin/
+                                rm -rf "oras_${ORAS_VERSION}_linux_amd64.tar.gz" oras-install/
+                            }
+
+                            if [[ "$ORAS_VERSION" == "latest" ]]; then
+                                get_latest_cli_version
+                            fi
+
+                            install_oras_cli
+                            oras version
+                        environment:
+                            ORAS_VERSION: << parameters.oras-version >>
+                        name: install oras version << parameters.oras-version >>
+            - when:
+                condition: << parameters.syft-version >>
+                steps:
+                    - run:
+                        command: |-
+                            #!/usr/bin/env bash
+                            set -eo pipefail
+
+                            # Fetch the latest version of Syft CLI
+                            get_latest_cli_version() {
+                                SYFT_VERSION=$(curl -L -s https://api.github.com/repos/anchore/syft/releases/latest | jq -r .tag_name)
+                                SYFT_VERSION="${SYFT_VERSION//v}"
+                            }
+
+                            # Install syft
+                            install_syft_cli() {
+                                echo "Installing syft version v${SYFT_VERSION}"
+                                sudo bash -c "curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v${SYFT_VERSION}"
+                            }
+
+                            if [[ "$SYFT_VERSION" == "latest" ]]; then
+                                get_latest_cli_version
+                            fi
+
+                            install_syft_cli
+                            syft version
+                        environment:
+                            SYFT_VERSION: << parameters.syft-version >>
+                        name: install syft version << parameters.syft-version >>
+    lint:
+        description: |
+            pylint:
+
+            - Run pylint against lint-path. Default is  "."
+            - Specify additional pylint options using parameters.pylint-options.
+        parameters:
+            lint-path:
+                default: .
+                description: Path used for pylint. Set to None to skip.
+                type: string
+            pylint-options:
+                default: ""
+                description: (Optional) Additional pylint command line options.
+                type: string
+        steps:
+            - run:
+                command: pylint << parameters.lint-path >> <<#parameters.pylint-options>><< parameters.pylint-options >><</parameters.pylint-options>>
+                name: Pylint << parameters.lint-path >>
+    liveness:
+        description: |
+            A common method of testing OCI images that will run on kubernetes.
+            This test will first run the docker image and then curl the provided linveness or readiness endpoint.
+        parameters:
+            docker-run-arguments:
+                default: ""
+                description: additional Docker Run arguements
+                type: string
+            health-url:
+                default: ""
+                description: health or liveness url
+                type: string
+            image:
+                description: Name of image
+                type: string
+            port-definition:
+                default: ""
+                description: docker run -p parameters
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            startup-delay:
+                default: 3
+                description: time to wait for service to startup and liveness endpoint to be available
+                type: integer
+            tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for tag
+                type: string
+        steps:
+            - run:
+                command: |
+                    docker run -it -d -p << parameters.port-definition >> <<#parameters.docker-run-arguments>><<parameters.docker-run-arguments>><</parameters.docker-run-arguments>> << parameters.registry >>/<< parameters.image>>:<< parameters.tag >>
+                    sleep << parameters.startup-delay >>
+                name: run image to be tested
+            - run:
+                command: curl << parameters.health-url >>
+                name: curl health endpoint url
+    livenessx:
+        description: |
+            Run images defined in bake file and confirm liveness.
+        parameters:
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker-bake.json file. Default is docker-bake.json.
+                type: string
+            docker-run-arguments:
+                default: ""
+                description: additional Docker Run arguements
+                type: string
+            health-url:
+                default: ""
+                description: health or liveness url
+                type: string
+            port-definition:
+                default: ""
+                description: docker run -p parameters
+                type: string
+            startup-delay:
+                default: 3
+                description: time to wait for service to startup and liveness endpoint to be available
+                type: integer
+        steps:
+            - run:
+                command: "#!/bin/bash\nset -euo pipefail\n\nif [[ ! -f \"$BAKEFILE\" ]]; then\n  echo \"Bake file not found: $BAKEFILE\" >&2\n  exit 1\nfi\n\necho \"Running liveness probe check of images based on docker bake file targets.\"\necho \"Using bake file: $BAKEFILE\"\necho \"Using TAG=${TAG}\"\necho \"Using PORT_DEFINITION=${PORT_DEFINITION}\"\necho \"Using HEALTH_URL=${HEALTH_URL}\"\necho \"Using STARTUP_DELAY=${STARTUP_DELAY}\"\necho \"Using DOCKER_RUN_ARGUEMENTS=${DOCKER_RUN_ARGUEMENTS}\"\n\n# Extract all targets and their tags, append scan results to OUTFILE\njq -r '\n  .target\n  | to_entries[]\n  | select(.value.tags != null)\n  | .key as $name\n  | .value.tags[]\n  | [$name, .]\n  | @tsv\n' \"$BAKEFILE\" | \nwhile IFS=$'\\t' read -r target_name raw_tag; do\n  image_ref=\"$raw_tag\"\n\n  # Replace bake file var reference with actual VAR value.\n  # We define it twice to support both ${TAG} and $TAG\n  image_ref=\"${image_ref//\\$\\{TAG\\}/$TAG}\"\n  image_ref=\"${image_ref//\\$TAG/$TAG}\"\n\n  # pick up any other ENV should they exist in the defition (allows more customization)\n  image_ref=\"$(eval echo \"$image_ref\")\"\n\n  echo \"Liveness: ${image_ref} from ${target_name}\"\n  if ! docker buildx imagetools inspect \"$image_ref\" >/dev/null 2>&1; then\n      echo \"❌ $image_ref not found in registry\"\n      exit 1\n  fi\n\n  # Run image and check port\n  docker run -it -d -p \"${PORT_DEFINITION}\" \"${DOCKER_RUN_ARGUEMENTS}\" \"$image_ref\"\n  sleep \"${STARTUP_DELAY}\"\n  curl \"${HEALTH_URL}\"\ndone\n\necho \"Success\"\n"
+                environment:
+                    BAKEFILE: << parameters.bake-file >>
+                    DOCKER_RUN_ARGUEMENTS: << parameters.docker-run-arguments >>
+                    HEALTH_URL: << parameters.health-url>>
+                    PORT_DEFINITION: << parameters.port-definition >>
+                    STARTUP_DELAY: << parameters.startup-delay >>
+                name: Liveness check based on docker bake file targets
+    machine-setup:
+        description: |
+            Install additional tools on standard circleci ubuntu machine executor.
+        parameters:
+            op-version:
+                default: ""
+                description: (Optional) Install 1password cli
+                type: string
+            vault-version:
+                default: ""
+                description: (Optional) Install Vault cli
+                type: string
+        steps:
+            - when:
+                condition: << parameters.op-version >>
+                steps:
+                    - run:
+                        command: |
+                            curl -L https://cache.agilebits.com/dist/1P/op2/pkg/v<< parameters.op-version >>/op_linux_amd64_v<< parameters.op-version >>.zip -o op.zip
+                            unzip -o op.zip && sudo mv op /usr/local/bin/op
+                            rm op.zip && rm op.sig
+                            op --version
+                        name: Install 1password cli
+            - when:
+                condition: << parameters.vault-version >>
+                steps:
+                    - run:
+                        command: |
+                            curl -SLO "https://releases.hashicorp.com/vault/<< parameters.vault-version >>/vault_<< parameters.vault-version >>_linux_amd64.zip" > "vault_<< parameters.vault-version >>_linux_amd64.zip"
+                            sudo unzip "vault_<< parameters.vault-version >>_linux_amd64.zip" -d /usr/local/bin
+                            sudo rm "vault_<< parameters.vault-version >>_linux_amd64.zip"
+                            vault version
+                        name: Install vault cli
+    multiarch-tag:
+        description: Add release tag to multi-arch manifest and pull local copy of digest
+        parameters:
+            build-tag:
+                description: build sha tag
+                type: string
+            image:
+                description: Name of image
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            release-tag:
+                description: semantic release tag
+                type: string
+        steps:
+            - run:
+                command: |
+                    docker buildx imagetools create \
+                      --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.release-tag >>" \
+                            "<< parameters.registry >>/<< parameters.image >>:<< parameters.build-tag >>"
+                name: Tag dev build with release tag
+    packages:
+        description: |
+            (Optional) Install python packages. Supports pip or pipenv. Use 'install-dev: true' to include development packages.
+        parameters:
+            install-dev:
+                default: false
+                description: (Optional) Install dev packages. Requires setting package-manager.
+                type: boolean
+            package-manager:
+                default: none
+                description: (Optional) Support for pip or pipenv package managers.
+                enum:
+                    - pipenv
+                    - pip
+                    - none
+                type: enum
+            pip-requirements-filename:
+                default: requirements.txt
+                description: (Optional) Name of pip requirements file.
+                type: string
+            pip-requirements-filename-dev:
+                default: requirements-dev.txt
+                description: (Optional) Name of pip development requirements file.
+                type: string
+        steps:
+            - when:
+                condition:
+                    equal:
+                        - pipenv
+                        - << parameters.package-manager >>
+                name: Install requirements from Pipfile
+                steps:
+                    - run:
+                        command: |
+                            pipenv install <<#parameters.install-dev>>--dev<</parameters.install-dev>>
+                            pip list
+                        name: Generate requirements.txt from Pipfile
+            - when:
+                condition:
+                    equal:
+                        - pip
+                        - << parameters.package-manager >>
+                name: Install requirements from Pipfile
+                steps:
+                    - run:
+                        command: |
+                            <<#parameters.install-dev>>pip install -r << parameters.pip-requirements-filename-dev >><</parameters.install-dev>>
+                            pip install -r << parameters.pip-requirements-filename >>
+                            pip list
+                        name: Install packages
+    persist-workspace:
+        description: |
+            Persist all files in /workspace to the /logs folder in the workflow artifact store.
+        steps:
+            - run:
+                command: ls -la workspace
+                name: list current workspace contents
+            - persist_to_workspace:
+                paths:
+                    - '*'
+                root: workspace
+            - store_artifacts:
+                destination: sbom
+                path: workspace
+    pull:
+        description: Publish docker image to a registry
+        parameters:
+            image:
+                description: Name of image
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            tag:
+                description: Value for tag
+                type: string
+        steps:
+            - run:
+                command: docker pull << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+                name: Pull a tagged image from the docker registry
+            - run:
+                command: docker image inspect --format='{{index .RepoDigests 0}}' << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> > manifestid
+                name: get image manifest id
+    push:
+        description: Publish docker image to a registry
+        parameters:
+            image:
+                description: Name of image
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            tag:
+                description: Value for tag
+                type: string
+        steps:
+            - run:
+                command: docker push << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+                name: Publish a tagged image to the docker registry
+    sbom:
+        description: |
+            generate sbom for the image and write to OCI compatible registry.
+            Assumes digest is present. Digest is fetched by the sign command.
+        parameters:
+            image:
+                description: Name of image
+                type: string
+            registry:
+                description: full registry path for writing signature
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: username for reigstry access
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: password for registry access
+                type: env_var_name
+            tag:
+                description: Value for tag
+                type: string
+        steps:
+            - run:
+                command: |
+                    echo "get digest ID for each architecture"
+                    amd_digest=$(crane digest --platform linux/amd64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
+                    arm_digest=$(crane digest --platform linux/arm64 << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>)
+
+                    echo "set image@digest readuri"
+                    amd_image="<< parameters.registry >>/<< parameters.image >>@$amd_digest"
+                    arm_image="<< parameters.registry >>/<< parameters.image >>@$arm_digest"
+
+                    echo "amd_image=$amd_image"
+                    echo "arm_image=$arm_image"
+
+                    echo "generate sboms for each architecture"
+                    syft --platform amd64  "$amd_image" -o spdx-json > workspace/sbom-amd64.json
+                    syft --platform arm64  "$arm_image" -o spdx-json > workspace/sbom-arm64.json
+
+                    echo "set image@digest writeuri"
+                    amd_sbomfile="<< parameters.registry >>/<< parameters.image >>:${amd_digest//:/-}.sbom"
+                    arm_sbomfile="<< parameters.registry >>/<< parameters.image >>:${arm_digest//:/-}.sbom"
+
+                    echo "amd_sbomfile=$amd_sbomfile"
+                    echo "arm_sbomfile=$arm_sbomfile"
+
+                    # push sbom to registry
+                    # echo ${<< parameters.registry-password >>} | oras login << parameters.registry >> -u ${<< parameters.registry-login >>} --password-stdin
+                    oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$amd_sbomfile" workspace/sbom-amd64.json:application/spdx+json
+                    oras push --artifact-type 'application/vnd.spdx.sbom.v1+json' "$arm_sbomfile" workspace/sbom-amd64.json:application/spdx+json
+                name: Generate sbom for each architecture
+    scout-scan:
+        description: |
+            Run Docker Scout CVE scan based on contents of docker-bake file.
+            Optionally, upload scan log as save artifact and persist to pipeline workspace.
+            Specifically requires dockerhub credentials.
+
+            Log file name: << parameters.tag >>_snyk_log.txt
+        parameters:
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker-bake.json file. Default is docker-bake.json.
+                type: string
+            docker-login:
+                default: DOCKER_LOGIN
+                description: Environment variable containing Username for Dockerhub access. Default is DOCKER_LOGIN.
+                type: env_var_name
+            docker-password:
+                default: DOCKER_PASSWORD
+                description: Environment variable containing Password for Dockerhub access. Default is DOCKER_PASSWORD.
+                type: env_var_name
+            outfile:
+                default: scout.out
+                description: Name of output file. Default is scout.out.
+                type: string
+        steps:
+            - run:
+                command: "#!/bin/bash\nset -euo pipefail\n\nif [[ ! -f \"$BAKEFILE\" ]]; then\n  echo \"Bake file not found: $BAKEFILE\" >&2\n  exit 1\nfi\n\nOUTFILE=\"workspace/$OUTFILE\"\necho \"Running Docker Scout CVE scan against images based on docker bake file targets.\"\necho \"Using bake file: $BAKEFILE\"\necho \"Using TAG=${TAG}\"\necho \"Output file: $OUTFILE\"\n\n# confirm dockerhub credentials. redundant when also using Dockerhub as registry but required otherwise.\necho \"${DOCKER_PASSWORD}\" | docker login -u \"${DOCKER_LOGIN}\" --password-stdin docker.io\n\n{\n  echo \"=== Docker Scout CVE Scan Results ===\"\n  echo \"Bake file: $BAKEFILE\"\n  echo \"TAG: $TAG\"\n  echo\n} > \"${OUTFILE}\"\n\n# Extract all targets and their tags, append scan results to OUTFILE\njq -r '\n  .target\n  | to_entries[]\n  | select(.value.tags != null)\n  | .key as $name\n  | .value.tags[]\n  | [$name, .]\n  | @tsv\n' \"$BAKEFILE\" | \nwhile IFS=$'\\t' read -r target_name raw_tag; do\n  image_ref=\"$raw_tag\"\n\n  # Replace bake file var reference with actual VAR value.\n  # We define it twice to support both ${TAG} and $TAG\n  image_ref=\"${image_ref//\\$\\{TAG\\}/$TAG}\"\n  image_ref=\"${image_ref//\\$TAG/$TAG}\"\n\n  # pick up any other ENV should they exist in the defition (allows more customization)\n  image_ref=\"$(eval echo \"$image_ref\")\"\n\n  echo \"Scanning Target: ${target_name}  Image: ${image_ref}\" | tee -a \"$OUTFILE\"\n  if ! docker buildx imagetools inspect \"$image_ref\" >/dev/null 2>&1; then\n      echo \"❌ $image_ref not found in registry\"\n      exit 1\n  fi\n\n  # Run Docker Scout CVE scan and append to OUTFILE\n  {\n    echo \"===== Target: ${target_name}  Image: ${image_ref} =====\"\n    docker scout cves \"$image_ref\" --details\n    docker scout recommendations \"$image_ref\"\n    echo\n    echo \"view scout output in pipeline artifacts for details\"\n    echo \"--- End of ${target_name} scan ---\"\n    echo\n  } >> \"${OUTFILE}\"\ndone\n\necho \"Success\""
+                environment:
+                    BAKEFILE: << parameters.bake-file >>
+                    DOCKER_LOGIN: << parameters.docker-login >>
+                    DOCKER_PASSWORD: << parameters.docker-password >>
+                    OUTFILE: << parameters.outfile >>
+                name: Docker Scout CVE scan based on docker bake file targets
+    sign:
+        description: Sign oci image using cosign
+        parameters:
+            attestations:
+                default: ""
+                description: attestations to include in signature
+                type: string
+            cosign-password:
+                default: COSIGN_PASSWORD
+                description: signing key passphrase
+                type: env_var_name
+            image:
+                description: Name of image
+                type: string
+            registry:
+                description: full registry path for writing signature
+                type: string
+            sign-key:
+                default: cosign.key
+                description: path to private key used to sign image
+                type: string
+            tag:
+                description: Value for tag
+                type: string
+            verify-key:
+                default: cosign.pub
+                description: path to public key used to verify signature
+                type: string
+        steps:
+            - run:
+                command: |
+                    if [ ! -f << parameters.sign-key >> ]; then
+                      echo "signing key not available; not able to sign image."
+                      exit 1
+                    fi
+
+                    if [ ! -f << parameters.verify-key >> ]; then
+                      echo "verification key not available; not able to validate signing process."
+                      exit 1
+                    fi
+
+                    if [ ! ${<< parameters.cosign-password >>-} ]; then
+                      echo "signing key passphrase is not available; not able to sign image."
+                      exit 1
+                    fi
+                name: Confirm signing parameters are set; key path, COSIGN_PASSWORD
+            - run:
+                command: crane digest << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> > digest
+                name: fetch digest
+            - run:
+                command: |
+                    digest=$(cat digest)
+                    imageref="<< parameters.registry >>/<< parameters.image >>@${digest}"
+                    cosign sign --yes --recursive --key << parameters.sign-key >> \
+                        <<#parameters.attestations>> << parameters.attestations >> <</parameters.attestations>> \
+                        "$imageref"
+                    cosign verify --key << parameters.verify-key >> << parameters.registry >>/<< parameters.image >>:<< parameters.tag >>
+                name: Sign oci image and store signature to registry
+    signx:
+        description: Sign bake file images using Cosign.
+        parameters:
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker bake file. Default is docker-bake.json.
+                type: string
+            cosign-password:
+                default: COSIGN_PASSWORD
+                description: Environment variable containing signing key passphrase. Default is COSIGN_PASSWORD.
+                type: env_var_name
+            cosign-sign-key:
+                default: cosign.key
+                description: Path to private key used to sign image. Default is ./cosign.key
+                type: string
+            cosign-verify-key:
+                default: cosign.pub
+                description: Path to public key used to verify signature. Default is ./cosign.pub
+                type: string
+            release-tag:
+                default: $CIRCLE_TAG
+                description: Value for tag.
+                type: string
+        steps:
+            - run:
+                command: |
+                    if [ ! -f << parameters.cosign-sign-key >> ]; then
+                      echo "signing key not available; not able to sign image."
+                      exit 1
+                    fi
+
+                    if [ ! -f << parameters.cosign-verify-key >> ]; then
+                      echo "verification key not available; not able to validate signing process."
+                      exit 1
+                    fi
+
+                    if [ ! ${<< parameters.cosign-password >>-} ]; then
+                      echo "signing key passphrase is not available; not able to sign image."
+                      exit 1
+                    fi
+                name: Confirm signing parameters are set; key files and COSIGN_PASSWORD env variable
+            - run:
+                command: |
+                    #!/bin/bash
+                    set -euo pipefail
+
+                    echo "Signing released images."
+
+                    if [[ ! -f "$BAKEFILE" ]]; then
+                      echo "Bake file not found: $BAKEFILE" >&2
+                      exit 1
+                    fi
+
+                    echo "Using bake file: $BAKEFILE"
+                    echo "release tag: $RELEASE_TAG"
+                    if [[ -z "${COSIGN_SIGN_KEY}" ]]; then
+                      echo "Signing key is provided"
+                    fi
+                    echo "COSIGN_VERIFY_KEY = ${COSIGN_VERIFY_KEY}"
+                    if [[ -z "${COSIGN_VERIFY_KEY}" ]]; then
+                      echo "Verification key is provided"
+                    fi
+                    if [[ -z "${COSIGN_PASSWORD}" ]]; then
+                      echo "Key passphrase is provided"
+                    fi
+                    echo
+
+                    # Extract all targets and their tags
+                    jq -r '
+                      .target
+                      | to_entries[]
+                      | select(.value.tags != null)
+                      | .key as $name
+                      | .value.tags[]
+                      | [$name, .]
+                      | @tsv
+                    ' "$BAKEFILE" |
+                    while IFS=$'\t' read -r target_name raw_tag; do
+                      image_ref="$raw_tag"
+
+                      # Replace bakefile var reference with actual VAR value.
+                      # We define it twice to support both ${TAG} and $TAG
+                      image_ref="${image_ref//\$\{TAG\}/$RELEASE_TAG}"
+                      image_ref="${image_ref//\$TAG/$RELEASE_TAG}"
+
+                      # pick up any other ENV should they exist in the defition (allow more customization)
+                      image_ref="$(eval echo "$image_ref")"
+
+                      echo "Target: ${target_name}"
+                      echo "Source image: ${image_ref}"
+
+                    # Obtain manifest index digest
+                      digest=$(oras manifest fetch --descriptor "${image_ref}" | jq -r '.digest')
+
+                      if [[ -z "$digest" ]]; then
+                        echo "❌ Unable to resolve digest for ${image_ref}"
+                        exit 1
+                      fi
+
+                      export COSIGN_EXPERIMENTAL=1
+                      echo "Signing digest reference: ${image_ref%@*}@${digest}"
+                      # sign image
+                      cosign sign --registry-referrers-mode=oci-1-1 --key "${COSIGN_SIGN_KEY}" "${image_ref%@*}@${digest}" -y
+
+                      # verify signature
+                      cosign verify --key "${COSIGN_VERIFY_KEY}" "${image_ref}@${digest}"
+
+                      echo "Release version signed and verified"
+                      echo
+                    done
+                environment:
+                    BAKEFILE: << parameters.bake-file >>
+                    COSIGN_PASSWORD: << parameters.cosign-password >>
+                    COSIGN_SIGN_KEY: << parameters.cosign-sign-key >>
+                    COSIGN_VERIFY_KEY: << parameters.cosign-verify-key >>
+                    RELEASE_TAG: << parameters.release-tag >>
+                name: Sign release version of bake file images
+    tagx:
+        description: Add additional tag to image manifest.
+        parameters:
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker bake file. Default is docker-bake.json.
+                type: string
+            commit-tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Existing build commit image tag.
+                type: string
+            include-latest:
+                default: "false"
+                description: Include latest tag in release. Default is false.
+                type: string
+            release-tag:
+                default: ${CIRCLE_TAG}
+                description: Additional release tag.
+                type: string
+        steps:
+            - run:
+                command: |-
+                    #!/usr/bin/env bash
+                    set -eo pipefail
+
+                    echo "Add $TAG parameter to BASH_ENV."
+                    echo "CIRCLE_SHA1=$CIRCLE_SHA1"
+                    echo "CIRCLE_TAG=$CIRCLE_TAG"
+
+                    # set ENV var to the build commit tag provided by the job
+                    echo "export TAG=$TAG" >> "$BASH_ENV"
+                environment:
+                    TAG: << parameters.commit-tag >>
+                name: Add <<parameters.commit-tag>> to BASH_ENV
+            - run:
+                command: "#!/bin/bash\nset -euo pipefail\n\necho \"Adding release tag to existing image manifests.\"\n\nif [[ ! -f \"$BAKEFILE\" ]]; then\n  echo \"Bake file not found: $BAKEFILE\" >&2\n  exit 1\nfi\n\neval \"RELEASE_TAG=\\\"$RELEASE_TAG\\\"\"\necho \"Using bake file: $BAKEFILE\"\necho \"commit tag: ${TAG}\"\necho \"release tag: $RELEASE_TAG\"\n\n# Extract all targets and their tags\njq -r '\n  .target\n  | to_entries[]\n  | select(.value.tags != null)\n  | .key as $name\n  | .value.tags[]\n  | [$name, .]\n  | @tsv\n' \"$BAKEFILE\" |\nwhile IFS=$'\\t' read -r target_name raw_tag; do\n  image_ref=\"$raw_tag\"\n\n  # Replace bakefile var reference with actual VAR value.\n  # We define it twice to support both ${TAG} and $TAG\n  image_ref=\"${image_ref//\\$\\{TAG\\}/$TAG}\"\n  image_ref=\"${image_ref//\\$TAG/$TAG}\"\n\n  # pick up any other ENV should they exist in the defition (allow more customization)\n  image_ref=\"$(eval echo \"$image_ref\")\"\n  \n  echo \"Target: ${target_name}\"\n  echo \"Source image: ${image_ref}\"\n\n  # Obtain manifest index digest\n  digest=$(oras manifest fetch --descriptor \"${image_ref}\" | jq -r '.digest')\n\n  if [[ -z \"$digest\" ]]; then\n    echo \"❌ Unable to resolve digest for ${image_ref}\"\n    exit 1\n  fi\n\n  echo \"Digest reference: ${image_ref%@*}@${digest}\"\n\n  # optionally add latest tag\n  if [[ \"$LATEST_TAG\" == \"true\" ]]; then\n    latest_image_ref=\"${image_ref/$TAG/latest}\"\n    echo \"(Optional) Use Latest: ${latest_image_ref}\"\n    docker buildx imagetools create -t \"${latest_image_ref}\" \"${image_ref%@*}@${digest}\"\n  else\n    echo \"(Optional) Use Latest: skipped\"\n  fi\n\n  # Create release tag\n  release_image_ref=\"${image_ref/$TAG/$RELEASE_TAG}\"\n  echo \"Release tag: ${release_image_ref}\"\n\n  # add release tag\n  docker buildx imagetools create -t \"${release_image_ref}\" \"${image_ref%@*}@${digest}\"\n\n  echo \"Success\"\n  echo\ndone"
+                environment:
+                    BAKEFILE: << parameters.bake-file >>
+                    LATEST_TAG: << parameters.include-latest >>
+                    RELEASE_TAG: << parameters.release-tag >>
+                name: Add release tag to image manifest
+    unit-testing:
+        description: |
+            Run pytest against parameter target or . by default, optionally report results.
+
+            - report-coverage currently supports only Codacy, requires Codacy account-api-token
+              environment variables to be available in the environment
+        parameters:
+            coverage:
+                default: true
+                description: (Optional) Calculate unit test coverage. Requires unit-test.
+                type: boolean
+            report-coverage:
+                default: none
+                description: (Optional) Report test coverage.
+                enum:
+                    - codacy
+                    - none
+                type: enum
+        steps:
+            - unless:
+                condition: << parameters.coverage >>
+                steps:
+                    - run:
+                        command: pytest -vv -l
+                        name: Run pytest without test coverage analysis
+            - when:
+                condition: << parameters.coverage >>
+                steps:
+                    - run:
+                        command: |
+                            coverage run -m pytest -vv -l
+                            coverage xml --omit='test/*'
+                        name: Run pytest with test coverage analysis
+                    - when:
+                        condition:
+                            equal:
+                                - codacy
+                                - << parameters.report-coverage >>
+                        name: Report unit test coverage
+                        steps:
+                            - run:
+                                command: |
+                                    wget -qO - https://coverage.codacy.com/get.sh | sh -s -- report -r coverage.xml
+                                name: Report test coverage to Codacy
+executors:
+    circleci-executor-builder:
+        description: |
+            By default, orb-python-api releasex job uses ghcr.io/twplatformlabs/circleci-executor-builder, an alpine based CircleCI executor. The executor includes standard tools for tagging and signing manifestes.
+        docker:
+            - auth:
+                password: ${<< parameters.registry-password >>}
+                username: ${<< parameters.registry-login >>}
+              image: << parameters.executor-image-name >>
+        parameters:
+            executor-image-name:
+                description: Specify circleci remote-docker executor image.
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Environment variable containing Password for reigstry access. Default is DOCKER_PASSWORD.
+                type: env_var_name
+            resource-class:
+                description: Executor resource class.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+        resource_class: << parameters.resource-class >>
+    circleci-python-builder:
+        description: |
+            By default, orb-python-api uses ghcr.io/twplatformlabs/circleci-python-builder, an alpine based CircleCI executor. The executor includes standard tools for linting, testing, and scanning python code.
+        docker:
+            - auth:
+                password: ${<< parameters.registry-password >>}
+                username: ${<< parameters.registry-login >>}
+              image: << parameters.executor-image >>
+        parameters:
+            executor-image:
+                description: Specify circleci remote-docker executor image.
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Environment variable containing Password for reigstry access. Default is DOCKER_PASSWORD.
+                type: env_var_name
+            resource-class:
+                description: Executor resource class.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+        resource_class: << parameters.resource-class >>
+    machine-executor:
+        description: Optional machine-image based executor for python-api builds.
+        machine:
+            image: << parameters.executor-machine >>
+            resource_class: << parameters.executor-resource-class >>
+        parameters:
+            executor-machine:
+                default: ubuntu-2604:current
+                description: circleci machine executor
+                type: string
+            executor-resource-class:
+                default: medium
+                description: specify the resouce class for the image
+                enum:
+                    - medium
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+jobs:
+    machine-clone-only:
+        description: |
+            Launch executor, clone the repo and then fail the pipeline. This is a debug feature that
+            permits the user to experiment with the remote build process before any predefined actions
+            have taken place.
+        executor:
+            executor-machine: << parameters.executor-machine >>
+            executor-resource-class: << parameters.executor-resource-class >>
+            name: machine-executor
+        parameters:
+            executor-machine:
+                default: ubuntu-2204:current
+                description: specify machine executor
+                type: string
+            executor-resource-class:
+                default: medium
+                description: specify executor resource class. Default is medium.
+                enum:
+                    - medium
+                    - large
+                    - xlarge
+                    - 2xlarge
+                type: enum
+            shell:
+                default: /bin/bash -eo pipefail
+                description: default shell invocation. Override to support different shells or tools like secrethub.io
+                type: string
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - run:
+                command: exit 1
+                name: force fail in order to debug job steps
+    oci-image-build:
+        description: Secure oci compatible image build from dockerfile.
+        executor:
+            executor-machine: << parameters.executor-machine >>
+            executor-resource-class: << parameters.executor-resource-class >>
+            name: machine-executor
+        parameters:
+            after-build:
+                default: []
+                description: (Optional) Steps to run Docker build.
+                type: steps
+            after-push:
+                default: []
+                description: Optional steps to run after publishing the docker image
+                type: steps
+            before-build:
+                default: []
+                description: (Optional) Steps to run before Docker build.
+                type: steps
+            cve-scan:
+                default: false
+                description: perform snyk.io docker cve scan
+                type: boolean
+            docker-run-arguments:
+                default: ""
+                description: additional Docker Run arguements
+                type: string
+            dockerfile:
+                default: Dockerfile
+                description: Name of Dockerfile.
+                type: string
+            executor-machine:
+                default: ubuntu-2204:current
+                description: Machine executor environment. Default is ubuntu-2204:current.
+                type: string
+            executor-resource-class:
+                default: medium
+                description: specify executor resource class. Default is medium.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+            extra-build-args:
+                default: ""
+                description: |
+                    (Optional) Extra flags to pass to docker build. For examples, see https://docs.docker.com/engine/reference/commandline/build
+                type: string
+            health-url:
+                default: ""
+                description: health or liveness
+                type: string
+            image:
+                description: Name of image.
+                type: string
+            path:
+                default: .
+                description: Path to the directory containing your Dockerfile and build context.
+                type: string
+            port-definition:
+                default: ""
+                description: docker run -p parameters
+                type: string
+            registry:
+                default: docker.io
+                description: Name of DTR compatible registry. Can use private registry.
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Username for reigstry access.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Password for registry access.
+                type: env_var_name
+            shell:
+                default: /bin/bash -eo pipefail
+                description: default shell invocation. Override to support different shells or tools like secrethub.io
+                type: string
+            snyk-additional-args:
+                default: ""
+                description: Additional Snyk CLI command line flags.
+                type: string
+            snyk-organization:
+                default: ""
+                description: Trigger Scan results related to repository associated with organization created at snyk.io
+                type: string
+            snyk-severity-threshold:
+                default: low
+                description: snyk test reporting threshold
+                type: string
+            snyk-skip-base-image:
+                default: false
+                description: optionally, skip performing cve scan of base image
+                type: boolean
+            snyk-token:
+                default: SNYK_TOKEN
+                description: snyk.io api-token
+                type: env_var_name
+            startup-delay:
+                default: 3
+                description: time to wait for service to startup and liveness endpoint to be available
+                type: integer
+            tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for image tag.
+                type: string
+            tag-annotation:
+                default: ""
+                description: (Optional) Additional text prepended to semantic version tag
+                type: string
+            test-tag:
+                default: test
+                description: (ephemeral) tag for the local test image
+                type: string
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - configure-machine
+            - when:
+                condition: << parameters.before-build >>
+                name: Run before_build lifecycle hook steps.
+                steps: << parameters.before-build >>
+            - confirm-registry:
+                registry: << parameters.registry >>
+                registry-login: << parameters.registry-login >>
+                registry-password: << parameters.registry-password >>
+            - build:
+                dockerfile: << parameters.dockerfile >>
+                extra-build-args: << parameters.extra-build-args >>
+                image: << parameters.image >>
+                path: << parameters.path >>
+                registry: << parameters.registry >>
+                tag: << parameters.test-tag >>
+            - when:
+                condition: << parameters.after-build >>
+                name: Run after_build lifecycle hook steps.
+                steps: << parameters.after-build >>
+            - when:
+                condition: << parameters.cve-scan >>
+                name: Perform snyk cve scan
+                steps:
+                    - cve-scan:
+                        dockerfile: << parameters.dockerfile >>
+                        image: << parameters.image >>
+                        registry: << parameters.registry >>
+                        snyk-additional-args: << parameters.snyk-additional-args >>
+                        snyk-organization: << parameters.snyk-organization >>
+                        snyk-severity-threshold: << parameters.snyk-severity-threshold >>
+                        snyk-skip-base-image: << parameters.snyk-skip-base-image >>
+                        snyk-token: << parameters.snyk-token >>
+                        tag: << parameters.test-tag >>
+            - when:
+                condition: << parameters.health-url >>
+                name: perform container smoke (liveness/readiness) test
+                steps:
+                    - liveness:
+                        docker-run-arguments: << parameters.docker-run-arguments >>
+                        health-url: << parameters.health-url>>
+                        image: << parameters.image >>
+                        port-definition: << parameters.port-definition >>
+                        registry: << parameters.registry >>
+                        startup-delay: << parameters.startup-delay >>
+                        tag: << parameters.test-tag >>
+            - when:
+                condition: << parameters.after-push >>
+                name: Run after_push lifecycle hook steps.
+                steps: << parameters.after-push >>
+    oci-image-buildx:
+        description: Use buildx with bake file on machine executor to create Python images.
+        executor:
+            executor-machine: << parameters.executor-machine >>
+            executor-resource-class: << parameters.executor-resource-class >>
+            name: machine-executor
+        parameters:
+            after-build:
+                default: []
+                description: (Optional) Steps to run Docker build.
+                type: steps
+            after-checkout:
+                default: []
+                description: Optional steps to run after checking out the code.
+                type: steps
+            after-liveness:
+                default: []
+                description: Optional steps to run after scanning and liveness checks
+                type: steps
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker-bake.json file. Default is docker-bake.json.
+                type: string
+            docker-run-arguments:
+                default: ""
+                description: additional Docker Run arguements
+                type: string
+            executor-machine:
+                default: ubuntu-2604:current
+                description: Machine executor environment. Default is ubuntu-2604:current.
+                type: string
+            executor-resource-class:
+                default: medium
+                description: specify executor resource class. Default is medium.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+            extra-build-args:
+                default: ""
+                description: |
+                    (Optional) Extra flags to pass to docker build. For examples, see https://docs.docker.com/engine/reference/commandline/build
+                type: string
+            health-url:
+                default: ""
+                description: health or liveness
+                type: string
+            op-version:
+                default: ""
+                description: Install 1Password CLI version if provided.
+                type: string
+            port-definition:
+                default: ""
+                description: docker run -p parameters
+                type: string
+            registry:
+                default: docker.io
+                description: Name of DTR compatible registry. Can use private registry.
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Username for reigstry access.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Password for registry access.
+                type: env_var_name
+            scout-outfile:
+                default: scout.out
+                description: Name of output file for Docker Scout CVE scan. Default is scout.out.
+                type: string
+            scout-scan:
+                default: false
+                description: Perform Docker Scout CVE scan of all targets in bake file. Default is false.
+                type: boolean
+            shell:
+                default: /bin/bash -eo pipefail
+                description: default shell invocation. Override to support different shells or tools like secrethub.io
+                type: string
+            startup-delay:
+                default: 3
+                description: time to wait for service to startup and liveness endpoint to be available
+                type: integer
+            tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for image tag.
+                type: string
+            target:
+                default: executors
+                description: Bake file build target. Default is default.
+                type: string
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - install:
+                op-version: << parameters.op-version >>
+            - when:
+                condition: << parameters.after-checkout >>
+                name: Run after-checkout lifecycle hook steps
+                steps: << parameters.after-checkout >>
+            - confirm-registry:
+                registry: << parameters.registry >>
+                registry-login: << parameters.registry-login >>
+                registry-password: << parameters.registry-password >>
+            - run:
+                command: mkdir -p workspace
+                name: setup artifact workspace
+            - buildx:
+                bake-file: << parameters.bake-file >>
+                extra-build-args: << parameters.extra-build-args >>
+                tag: << parameters.tag >>
+                target: << parameters.target >>
+            - when:
+                condition: << parameters.after-build >>
+                name: Run after_build lifecycle hook steps.
+                steps: << parameters.after-build >>
+            - when:
+                condition: << parameters.scout-scan >>
+                name: Perform Docker Scout CVE scan
+                requires:
+                    - buildx
+                steps:
+                    - scout-scan:
+                        bake-file: << parameters.bake-file >>
+                        outfile: << parameters.scout-outfile >>
+            - when:
+                condition: << parameters.health-url >>
+                name: perform container smoke (liveness/readiness) test
+                steps:
+                    - livenessx:
+                        bake-file: << parameters.bake-file >>
+                        docker-run-arguments: << parameters.docker-run-arguments >>
+                        health-url: << parameters.health-url>>
+                        port-definition: << parameters.port-definition >>
+                        startup-delay: << parameters.startup-delay >>
+            - when:
+                condition: << parameters.after-liveness >>
+                name: Run after-liveness lifecycle hook steps.
+                steps: << parameters.after-liveness >>
+            - persist_to_workspace:
+                paths:
+                    - '*.out'
+                root: ~/project/workspace
+            - store_artifacts:
+                destination: logs
+                path: ~/project/workspace
+    publish-image:
+        description: |
+            Tag registry image with semantic version for release, sign and generate sbom.
+        executor:
+            executor-image: << parameters.executor-image >>
+            name: circleci-python-builder
+            registry-login: << parameters.registry-login >>
+            registry-password: << parameters.registry-password >>
+            resource-class: << parameters.executor-resource-class >>
+        parameters:
+            after-push:
+                default: []
+                description: Optional steps to run after publishing the docker image
+                type: steps
+            attestations:
+                default: ""
+                description: attestations to include in signature
+                type: string
+            before-push:
+                default: []
+                description: Optional steps to run before building the docker image
+                type: steps
+            cosign-password:
+                default: COSIGN_PASSWORD
+                description: signing key passphrase
+                type: env_var_name
+            executor-image:
+                default: twdps/circleci-python-builder:stable
+                description: Specify executor image used by job.
+                type: string
+            executor-resource-class:
+                default: medium
+                description: Specify executor resource class.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+            image:
+                description: Name of image
+                type: string
+            publish-tag:
+                default: $CIRCLE_TAG
+                description: Value for published release version
+                type: string
+            pull-tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value for dev build tag
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: username for reigstry access
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: password for registry access
+                type: env_var_name
+            sbom-filename:
+                default: sbom.spdx
+                description: name of generate sbom file
+                type: string
+            shell:
+                default: /bin/bash -eo pipefail
+                description: default shell invocation. Override to support different shells or tools like secrethub.io
+                type: string
+            sign-key:
+                default: cosign.key
+                description: path to private key used to sign image
+                type: string
+            tag-annotation:
+                default: ""
+                description: Additional text appendc to semantic version tag
+                type: string
+            verify-key:
+                default: cosign.pub
+                description: path to public key used to verify signature
+                type: string
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - setup_remote_docker
+            - when:
+                condition: << parameters.before-push >>
+                name: Run before_push lifecycle hook steps.
+                steps: << parameters.before-push >>
+            - run:
+                command: mkdir -p workspace
+                name: setup artifact workspace
+            - confirm-registry:
+                registry: << parameters.registry >>
+                registry-login: << parameters.registry-login >>
+                registry-password: << parameters.registry-password >>
+            - multiarch-tag:
+                build-tag: << parameters.pull-tag >>
+                image: << parameters.image >>
+                registry: << parameters.registry >>
+                release-tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+            - sign:
+                attestations: << parameters.attestations >>
+                cosign-password: << parameters.cosign-password >>
+                image: << parameters.image >>
+                registry: << parameters.registry >>
+                sign-key: << parameters.sign-key >>
+                tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+                verify-key: << parameters.verify-key >>
+            - sbom:
+                image: << parameters.image >>
+                registry: << parameters.registry >>
+                registry-login: << parameters.registry-login >>
+                registry-password: << parameters.registry-password >>
+                tag: << parameters.publish-tag >><< parameters.tag-annotation >>
+            - when:
+                condition: << parameters.after-push >>
+                name: Run after_push lifecycle hook steps.
+                steps: << parameters.after-push >>
+            - persist-workspace
+    releasex:
+        description: |
+            Tag development build with semantic release version.
+
+            Use with oci-image-buildx job to publish release versions of image based on bake file configuration.
+
+            Principle job activities:
+            - Selects image manifest based on dev build commit tag (default)
+            - Adds semantic release tag to manifest based on triggering git tag (Default)
+            - (Optional) Add 'latest' tag to manifest
+            - (Optional) Sign image manifest using cosign and provided cosign-generated keys
+        executor:
+            executor-image-image: << parameters.executor-image-name >>
+            name: circleci-executor-builder
+            registry-login: << parameters.registry-login >>
+            registry-password: << parameters.registry-password >>
+            resource-class: << parameters.executor-resource-class >>
+        parameters:
+            after-checkout:
+                default: []
+                description: Optional steps to run after checking out the code.
+                type: steps
+            after-release:
+                default: []
+                description: Optional steps to run after tagging the docker image.
+                type: steps
+            bake-file:
+                default: docker-bake.json
+                description: Name of docker-bake.json file. Default is docker-bake.json.
+                type: string
+            before-release:
+                default: []
+                description: Optional steps to run prior to tagging release versions of image.
+                type: steps
+            commit-tag:
+                default: dev.${CIRCLE_SHA1:0:7}
+                description: Value of tag to pull for publish release. Default is dev.${CIRCLE_SHA1:0:7}.
+                type: string
+            cosign-password:
+                default: COSIGN_PASSWORD
+                description: Environment variable containing signing key passphrase. Default is COSIGN_PASSWORD.
+                type: env_var_name
+            cosign-sign-key:
+                default: cosign.key
+                description: Path to private key used to sign image. Default is ./cosign.key
+                type: string
+            cosign-verify-key:
+                default: cosign.pub
+                description: Path to public key used to verify signature. Default is ./cosign.pub
+                type: string
+            executor-image-name:
+                default: ghcr.io/twplatformlabs/circleci-executor-builder:latest
+                description: Remote-docker executor image. Default is ghcr.io/txplatformlabs/circleci-executor-builder:latest.
+                type: string
+            executor-resource-class:
+                default: medium
+                description: Executor resource class. Default is medium.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+            include-latest:
+                default: "false"
+                description: Include latest tag in release. Default is false.
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry. Default is docker.io
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Environment variable containing Password for reigstry access. Default is DOCKER_PASSWORD.
+                type: env_var_name
+            release-tag:
+                default: ${CIRCLE_TAG}
+                description: Value for an additional release tag.
+                type: string
+            shell:
+                default: /bin/bash -eo pipefail
+                description: Default shell invocation.
+                type: string
+            sign-image:
+                default: false
+                description: Sign OCI image using cosign. Default is false.
+                type: boolean
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - setup_remote_docker
+            - attach_workspace:
+                at: ~/project/workspace
+            - when:
+                condition: << parameters.after-checkout >>
+                name: Run after-checkout lifecycle hook steps.
+                steps: << parameters.after-checkout >>
+            - confirm-registry:
+                registry: << parameters.registry >>
+                registry-login: << parameters.registry-login >>
+                registry-password: << parameters.registry-password >>
+            - when:
+                condition: << parameters.before-release >>
+                name: Run before-release lifecycle hook steps
+                steps: << parameters.before-release >>
+            - tagx:
+                bake-file: << parameters.bake-file >>
+                commit-tag: << parameters.commit-tag >>
+                include-latest: << parameters.include-latest >>
+                release-tag: << parameters.release-tag >>
+            - when:
+                condition: << parameters.sign-image >>
+                name: Sign image using Cosign
+                steps:
+                    - signx:
+                        bake-file: << parameters.bake-file >>
+                        cosign-password: << parameters.cosign-password >>
+                        cosign-sign-key: << parameters.cosign-sign-key >>
+                        cosign-verify-key: << parameters.cosign-verify-key >>
+                        release-tag: << parameters.release-tag >>
+            - when:
+                condition: << parameters.after-release >>
+                name: Run after-release lifecycle hook steps
+                steps: << parameters.after-release >>
+    static-analysis:
+        description: |
+            Perform static analysis of python code,
+
+            Options:
+              - package-manager: [pip | pipenv | none*] Use python package manager.
+              - install-dev: [true | false*] Install development packages during static analysis.
+              - lint-path: [ .* | <path> | none] Run pylint on lint-path.
+              - hadolint: [true* | false] Run hadolint on Dockerfile.
+              - unit-test: [true* | false] Run pytest unit test.
+              - coverage: [true* | false] Calculate unit test coverage.
+              - after-checkout: [] Add custom steps to run immediately after code checkout.
+              - after-analysis: [] Add custom steps to run after static analysis is compmlete.
+            *default
+
+            See parameters for additional custom settings.
+        executor:
+            executor-image: << parameters.executor-image >>
+            name: circleci-python-builder
+            registry-login: << parameters.registry-login >>
+            registry-password: << parameters.registry-password >>
+            resource-class: << parameters.executor-resource-class >>
+        parameters:
+            after-analysis:
+                default: []
+                description: (Optional) Steps to run after static code analysis.
+                type: steps
+            after-checkout:
+                default: []
+                description: (Optional) steps to run after checking out the code.
+                type: steps
+            coverage:
+                default: true
+                description: (Optional) Calculate unit test coverage. Requires unit-test.
+                type: boolean
+            dockerfile:
+                default: Dockerfile
+                description: Name of dockerfile.
+                type: string
+            executor-image:
+                default: twdps/circleci-python-builder:stable
+                description: Specify executor image used by job.
+                type: string
+            executor-resource-class:
+                default: medium
+                description: Specify executor resource class.
+                enum:
+                    - medium
+                    - medium+
+                    - large
+                    - xlarge
+                    - 2xlarge
+                    - 2xlarge+
+                type: enum
+            hadolint:
+                default: true
+                description: (Optional) Run hadolint by defualt. Set False to skip.
+                type: boolean
+            install-dev:
+                default: false
+                description: (Optional) Install dev packages during static analysis. Requires setting package-manager.
+                type: boolean
+            lint-path:
+                default: .
+                description: Path used for pylint. Set to none to skip.
+                type: string
+            package-manager:
+                default: none
+                description: (Optional) Support for pip or pipenv package managers.
+                enum:
+                    - pipenv
+                    - pip
+                    - none
+                type: enum
+            pip-requirements-filename:
+                default: requirements.txt
+                description: (Optional) Name of pip requirements file.
+                type: string
+            pip-requirements-filename-dev:
+                default: requirements-dev.txt
+                description: (Optional) Name of pip development requirements file.
+                type: string
+            pylint-options:
+                default: ""
+                description: (Optional) Additional pylint command line options.
+                type: string
+            registry:
+                default: docker.io
+                description: Name of registry. Default is docker.io
+                type: string
+            registry-login:
+                default: DOCKER_LOGIN
+                description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+                type: env_var_name
+            registry-password:
+                default: DOCKER_PASSWORD
+                description: Password for registry access.
+                type: env_var_name
+            report-coverage:
+                default: none
+                description: (Optional) Report test coverage.
+                enum:
+                    - codacy
+                    - none
+                type: enum
+            shell:
+                default: /bin/bash -eo pipefail
+                description: Shell launch configuration. Can override to support process level tool options (1password, teller).
+                type: string
+            unit-test:
+                default: true
+                description: (Optional) Pytest unit testing. Set False to skip.
+                type: boolean
+        shell: << parameters.shell >>
+        steps:
+            - checkout
+            - setup_remote_docker
+            - when:
+                condition: << parameters.after-checkout >>
+                name: Run after_checkout lifecycle hook steps
+                steps: << parameters.after-checkout >>
+            - when:
+                condition:
+                    not:
+                        equal:
+                            - none
+                            - << parameters.package-manager >>
+                name: Install python packages
+                steps:
+                    - packages:
+                        install-dev: << parameters.install-dev >>
+                        package-manager: << parameters.package-manager >>
+                        pip-requirements-filename: << parameters.pip-requirements-filename >>
+                        pip-requirements-filename-dev: << parameters.pip-requirements-filename-dev >>
+            - unless:
+                condition:
+                    equal:
+                        - none
+                        - << parameters.lint-path >>
+                steps:
+                    - lint:
+                        lint-path: << parameters.lint-path >>
+                        pylint-options: << parameters.pylint-options >>
+            - when:
+                condition: << parameters.hadolint >>
+                name: hadolint dockerfile
+                steps:
+                    - hadolint:
+                        dockerfile: << parameters.dockerfile >>
+            - when:
+                condition: << parameters.unit-test >>
+                name: unit-tests
+                steps:
+                    - unit-testing:
+                        coverage: << parameters.coverage >>
+                        report-coverage: << parameters.report-coverage >>
+            - when:
+                condition: << parameters.after-analysis >>
+                name: Run after after analysis lifecycle hook steps
+                steps: << parameters.after-analysis >>
+examples:
+    standard:
+        description: Standard usage of the twdps/terraform orb workflow jobs
+        usage:
+            version: "2.1"
+            orbs:
+                cosign: twdps/cosign@0.1.0
+                python: twdps/python-api@1.0.0
+            workflows:
+                development-build:
+                    jobs:
+                        - python/static-analysis:
+                            after-checkout:
+                                - run:
+                                    command: |
+                                        echo "export API_VERSION=dev.${CIRCLE_SHA1:0:7}" >> $BASH_ENV
+                                        source $BASH_ENV
+                                    name: set API_VERSION
+                            context: twdps-core-labs-team
+                            filters:
+                                branches:
+                                    only: /main/
+                                tags:
+                                    ignore: /.*/
+                            image: twdps/circleci-python-builder:4.0.0
+                            install-dev: true
+                            lint-path: api
+                            name: static code analysis
+                            package-manager: pip
+                            report-coverage: codeclimate
+                            shell: op run --env-file op.env -- /bin/bash -eo pipefail
+                version: 2
+

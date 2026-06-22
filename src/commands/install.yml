@@ -49,24 +49,6 @@ steps:
             command: <<include(scripts/install_1password.sh)>>
 
   - when:
-      condition: << parameters.snyk-version >>
-      steps:
-        - run:
-            name: install snyk version << parameters.snyk-version >>
-            environment:
-              SNYK_VERSION: << parameters.snyk-version >>
-            command: <<include(scripts/install_snyk.sh)>>
-
-  - when:
-      condition: << parameters.bats-version >>
-      steps:
-        - run:
-            name: install bats version << parameters.bats-version >>
-            environment:
-              BATS_VERSION: << parameters.bats-version >>
-            command: <<include(scripts/install_bats.sh)>>
-
-  - when:
       condition: << parameters.hadolint-version >>
       steps:
         - run:
@@ -83,15 +65,6 @@ steps:
             environment:
               TRIVY_VERSION: << parameters.trivy-version >>
             command: <<include(scripts/install_trivy.sh)>>
-
-  - when:
-      condition: << parameters.grype-version >>
-      steps:
-        - run:
-            name: install grype version << parameters.grype-version >>
-            environment:
-              GRYPE_VERSION: << parameters.grype-version >>
-            command: <<include(scripts/install_grype.sh)>>
 
   - when:
       condition: << parameters.cosign-version >>

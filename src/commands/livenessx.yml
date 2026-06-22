@@ -1,0 +1,43 @@
+# src/commands/livenessx.yml
+# yamllint disable rule:line-length
+---
+description: |
+  Run images defined in bake file and confirm liveness.
+
+parameters:
+
+  bake-file:
+    description: Name of docker-bake.json file. Default is docker-bake.json.
+    type: string
+    default: "docker-bake.json"
+
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
+
+  port-definition:
+    description: docker run -p parameters
+    type: string
+    default: ""
+
+  health-url:
+    description: health or liveness url
+    type: string
+    default: ""
+
+  startup-delay:
+    description: time to wait for service to startup and liveness endpoint to be available
+    type: integer
+    default: 3
+
+steps:
+  - run:
+      name: Docker Scout CVE scan based on docker bake file targets
+      environment:
+        BAKEFILE: << parameters.bake-file >>
+        PORT_DEFINITION: << parameters.port-definition >>
+        HEALTH_URL: << parameters.health-url>>
+        STARTUP_DELAY: << parameters.startup-delay >>
+        DOCKER_RUN_ARGUEMENTS: << parameters.docker-run-arguments >>
+      command: <<include(scripts/scout_scan.sh)>>

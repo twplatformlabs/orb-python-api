@@ -1,0 +1,40 @@
+# src/commands/tagx.yml
+# yamllint disable rule:line-length
+---
+description: Add additional tag to image manifest.
+
+parameters:
+
+  bake-file:
+    description: Name of docker bake file. Default is docker-bake.json.
+    type: string
+    default: "docker-bake.json"
+
+  commit-tag:
+    description: Existing build commit image tag.
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  release-tag:
+    description: Additional release tag.
+    type: string
+    default: ${CIRCLE_TAG}
+
+  include-latest:
+    description: Include latest tag in release. Default is false.
+    type: string
+    default: "false"
+
+steps:
+  - run:
+      name: Add <<parameters.commit-tag>> to BASH_ENV
+      environment:
+        TAG: << parameters.commit-tag >>
+      command: <<include(scripts/env_tag.sh)>>
+  - run:
+      name: Add release tag to image manifest
+      environment:
+        BAKEFILE: << parameters.bake-file >>
+        RELEASE_TAG: << parameters.release-tag >>
+        LATEST_TAG: << parameters.include-latest >>
+      command: <<include(scripts/add_tag_to_manifest.sh)>>

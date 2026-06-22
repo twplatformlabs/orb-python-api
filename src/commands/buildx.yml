@@ -1,74 +1,47 @@
-# src/commands/buildx.yaml
+# src/commands/build.yml
 # yamllint disable rule:line-length
 ---
+description: |
+  Uses buildx with a bake file for advanced builds. Defaults to docker-bake.json, can override.
 
-description: Buildx and push for multi-arch oci compatible image from Dockerfile.
+  Persists the log file to the pipeline workspace and makes available as artifact.
+  Log file name: << parameters.tag >>_build_log.txt
 
 parameters:
 
-  dockerfile:
-    description: Name of dockerfile.
-    type: string
-    default: Dockerfile
-
-  path:
-    description: Path to the directory containing your Dockerfile and build context.
-    type: string
-    default: .
-
-  image:
-    description: Name of image.
-    type: string
-
   tag:
-    description: Value for tag.
+    description: Value for image tag. Default is dev.${CIRCLE_SHA1:0:7}.
     type: string
     default: dev.${CIRCLE_SHA1:0:7}
 
-  registry:
-    description: Name of registry.
+  bake-file:
+    description: Name of docker-bake.json file. Default is docker-bake.json.
     type: string
-    default: docker.io
+    default: docker-bake.json
+
+  target:
+    description: Bake file build target. Default is default.
+    type: string
+    default: default
 
   extra-build-args:
-    description: >
-      (Optional) Extra flags to pass to docker build. For examples, see
-      https://docs.docker.com/engine/reference/commandline/build
+    description: Extra flags to pass to docker build.
     type: string
     default: ""
-
-  attestations:
-    description: attestations to include in signature
-    type: string
-    default: ""
-
-  sign-key:
-    description: path to private key used to sign image
-    type: string
-    default: cosign.key
-
-  verify-key:
-    description: path to public key used to verify signature
-    type: string
-    default: cosign.pub
-
-  cosign-password:
-    description: signing key passphrase
-    type: env_var_name
-    default: COSIGN_PASSWORD
 
 steps:
   - run:
-      name: Amd/Arm Multiarch Build
+      name: Add <<parameters.tag>> to BASH_ENV
+      environment:
+        TAG: << parameters.tag >>
+      command: <<include(scripts/env_tag.sh)>>
+  - run:
+      name: Buildx based on docker bake file configuration.
       command: |
-        docker system prune --all -f
-        str="<< parameters.image >>.<< parameters.tag >>.build.out"
+        str="<< parameters.bake-file >>.<< parameters.target >>.build.out"
         outfile=${str#*/}
         docker -v
-        docker buildx create --use
-        docker buildx build --progress plain --provenance=false --push \
-                            --platform linux/amd64,linux/arm64 \
-                            --file << parameters.dockerfile >> \
-                            <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
-                            --tag "<< parameters.registry >>/<< parameters.image >>:<< parameters.tag >>" \
-                            << parameters.path >> 2>&1 | tee workspace/$outfile
+        docker buildx create --name builder --driver docker-container --bootstrap --use
+        docker buildx bake --progress plain --metadata-file metadata.json \
+          <<#parameters.extra-build-args>><< parameters.extra-build-args >><</parameters.extra-build-args>> \
+          --push -f << parameters.bake-file >> << parameters.target >> 2>&1 | tee workspace/$outfile

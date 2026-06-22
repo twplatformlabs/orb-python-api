@@ -1,0 +1,59 @@
+# src/commands/signx.yml
+# yamllint disable rule:line-length
+---
+description: Sign bake file images using Cosign.
+
+parameters:
+
+  bake-file:
+    description: Name of docker bake file. Default is docker-bake.json.
+    type: string
+    default: "docker-bake.json"
+
+  release-tag:
+    description: Value for tag.
+    type: string
+    default: $CIRCLE_TAG
+
+  cosign-sign-key:
+    description: Path to private key used to sign image. Default is ./cosign.key
+    type: string
+    default: "cosign.key"
+
+  cosign-verify-key:
+    description: Path to public key used to verify signature. Default is ./cosign.pub
+    type: string
+    default: "cosign.pub"
+
+  cosign-password:
+    description: Environment variable containing signing key passphrase. Default is COSIGN_PASSWORD.
+    type: env_var_name
+    default: COSIGN_PASSWORD
+
+steps:
+  - run:
+      name: Confirm signing parameters are set; key files and COSIGN_PASSWORD env variable
+      command: |
+        if [ ! -f << parameters.cosign-sign-key >> ]; then
+          echo "signing key not available; not able to sign image."
+          exit 1
+        fi
+
+        if [ ! -f << parameters.cosign-verify-key >> ]; then
+          echo "verification key not available; not able to validate signing process."
+          exit 1
+        fi
+
+        if [ ! ${<< parameters.cosign-password >>-} ]; then
+          echo "signing key passphrase is not available; not able to sign image."
+          exit 1
+        fi
+  - run:
+      name: Sign release version of bake file images
+      environment:
+        BAKEFILE: << parameters.bake-file >>
+        RELEASE_TAG: << parameters.release-tag >>
+        COSIGN_SIGN_KEY: << parameters.cosign-sign-key >>
+        COSIGN_VERIFY_KEY: << parameters.cosign-verify-key >>
+        COSIGN_PASSWORD: << parameters.cosign-password >>
+      command: <<include(scripts/sign_images.sh)>>

@@ -1,0 +1,130 @@
+# src/commands/install.yml
+# yamllint disable rule:line-length
+---
+description: |
+  This command will install the specified version of a package if
+  a version is provided or do nothing if not.
+
+parameters:
+
+  op-version:
+    description: Install 1Password CLI version if provided.
+    type: string
+    default: ""
+
+  hadolint-version:
+    description: Install Hadolint CLI version if provided.
+    type: string
+    default: ""
+
+  trivy-version:
+    description: Install Trivy CLI version if provided.
+    type: string
+    default: ""
+
+  cosign-version:
+    description: Install Cosign CLI version if provided.
+    type: string
+    default: ""
+
+  syft-version:
+    description: Install Syft CLI version if provided.
+    type: string
+    default: ""
+
+  oras-version:
+    description: Install Oras CLI version if provided.
+    type: string
+    default: ""
+
+steps:
+
+  - when:
+      condition: << parameters.op-version >>
+      steps:
+        - run:
+            name: install 1password-cli version << parameters.op-version >>
+            environment:
+              OP_VERSION: << parameters.op-version >>
+            command: <<include(scripts/install_1password.sh)>>
+
+  - when:
+      condition: << parameters.vault-version >>
+      steps:
+        - run:
+            name: install vault version << parameters.vault-version >>
+            environment:
+              VAULT_VERSION: << parameters.vault-version >>
+            command: <<include(scripts/install_vault.sh)>>
+
+  - when:
+      condition: << parameters.snyk-version >>
+      steps:
+        - run:
+            name: install snyk version << parameters.snyk-version >>
+            environment:
+              SNYK_VERSION: << parameters.snyk-version >>
+            command: <<include(scripts/install_snyk.sh)>>
+
+  - when:
+      condition: << parameters.bats-version >>
+      steps:
+        - run:
+            name: install bats version << parameters.bats-version >>
+            environment:
+              BATS_VERSION: << parameters.bats-version >>
+            command: <<include(scripts/install_bats.sh)>>
+
+  - when:
+      condition: << parameters.hadolint-version >>
+      steps:
+        - run:
+            name: install hadolint version << parameters.hadolint-version >>
+            environment:
+              HADOLINT_VERSION: << parameters.hadolint-version >>
+            command: <<include(scripts/install_hadolint.sh)>>
+
+  - when:
+      condition: << parameters.trivy-version >>
+      steps:
+        - run:
+            name: install trivy version << parameters.trivy-version >>
+            environment:
+              TRIVY_VERSION: << parameters.trivy-version >>
+            command: <<include(scripts/install_trivy.sh)>>
+
+  - when:
+      condition: << parameters.grype-version >>
+      steps:
+        - run:
+            name: install grype version << parameters.grype-version >>
+            environment:
+              GRYPE_VERSION: << parameters.grype-version >>
+            command: <<include(scripts/install_grype.sh)>>
+
+  - when:
+      condition: << parameters.cosign-version >>
+      steps:
+        - run:
+            name: install cosign version << parameters.cosign-version >>
+            environment:
+              COSIGN_VERSION: << parameters.cosign-version >>
+            command: <<include(scripts/install_cosign.sh)>>
+
+  - when:
+      condition: << parameters.oras-version >>
+      steps:
+        - run:
+            name: install oras version << parameters.oras-version >>
+            environment:
+              ORAS_VERSION: << parameters.oras-version >>
+            command: <<include(scripts/install_oras.sh)>>
+
+  - when:
+      condition: << parameters.syft-version >>
+      steps:
+        - run:
+            name: install syft version << parameters.syft-version >>
+            environment:
+              SYFT_VERSION: << parameters.syft-version >>
+            command: <<include(scripts/install_syft.sh)>>

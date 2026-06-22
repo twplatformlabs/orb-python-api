@@ -9,6 +9,8 @@ globals:
   - &context orb-publishing
   - &image orb-python-api
   - &registry ghcr.io/twplatformlabs
+  - &registry-short ghcr.io
+  - &shell op run --env-file op.env -- /bin/bash -eo pipefail
 
 commands:
 
@@ -63,16 +65,31 @@ jobs:
             set -exo pipefail
             cat hadolint-outfile | grep "Haskell"
 
+  test install command:
+    machine:
+      image: ubuntu-2604:current
+    resource_class: medium
+    steps:
+      - checkout
+      - python-api/install:
+          op-version: latest
+          hadolint-version: latest
+          trivy-version: latest
+          cosign-version: latest
+          syft-version: latest
+          oras-version: latest
+
 workflows:
 
   integration tests:
     jobs:
       - test static analysis commands
+      - test install command
 
       - python-api/static-analysis:
           name: test static-analysis job
           shell: /bin/bash -eo pipefail
-          executor-image: twdps/circleci-python-builder:stable
+          executor-image: ghcr.io/twplatformlabs/circleci-python-builder:latest
           executor-resource-class: large
           package-manager: pip
           install-dev: true
@@ -96,7 +113,7 @@ workflows:
           registry: *registry
           image: *image
           shell: /bin/bash -eo pipefail
-          executor-machine: ubuntu-2204:current
+          executor-machine: ubuntu-2604:current
           executor-resource-class: medium
           dockerfile: test/Dockerfile
           cve-scan: true
@@ -140,3 +157,59 @@ workflows:
                 command: echo "after-push"
           requires:
             - test oci-image-build job
+
+      - python-api/oci-image-buildx:
+          name: test oci-image-buildx job
+          context: *context
+          shell: *shell
+          registry: *registry-short
+          registry-login: GHCR_LOGIN
+          registry-password: GHCR_PASSWORD
+          bake-file: test/bake-file.json
+          op-version: latest
+          target: "executors"
+          scout-scan: true
+          health-url: "http://0.0.0.0:8000/v1/test/healthz"
+          port-definition: "8000:8000"
+          startup-delay: 5
+          docker-run-arguments: "-e API_VERSION=dev.${CIRCLE_SHA1:0:7}"
+          after-checkout:
+            - run:
+                name: after-checkout message
+                command: echo "after-checkout"
+          after-build:
+            - run:
+                name: after-build message
+                command: echo "after-build"
+          after-liveness:
+            - run:
+                name: after-liveness message
+                command: echo "after-liveness"
+          requires:
+            - test static-analysis job
+
+      - python-api/releasex:
+          name: test releasex job
+          context: *context
+          shell: *shell
+          executor-image-name: ghcr.io/twplatformlabs/circleci-executor-builder:latest
+          registry-login: GHCR_LOGIN
+          registry-password: GHCR_PASSWORD
+          registry: *registry-short
+          bake-file: test/docker-bake.json
+          include-latest: true
+          sign-image: true
+          after-checkout:
+            - run:
+                name: after-checkout message
+                command: echo "after-checkout"
+          before-release:
+            - run:
+                name: before-release message
+                command: echo "before-release"
+          after-release:
+            - run:
+                name: after-release message
+                command: echo "after-release"
+          requires:
+            - test oci-image-buildx job

@@ -28,8 +28,8 @@ parameters:
   executor-resource-class:
     description: specify executor resource class. Default is medium.
     type: enum
-    enum: [medium, large, xlarge, 2xlarge]
-    default: medium
+    enum: [medium.gen2, large.gen2, xlarge.gen2, 2xlarge.gen2, 2xlarge+.gen2]
+    default: medium.gen2
 
 steps:
   - checkout

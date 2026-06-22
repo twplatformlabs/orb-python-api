@@ -1,0 +1,147 @@
+# src/jobs/releasex.yml
+# yamllint disable rule:line-length
+---
+description: |
+  Tag development build with semantic release version.
+
+  Use with oci-image-buildx job to publish release versions of image based on bake file configuration.
+
+  Principle job activities:
+  - Selects image manifest based on dev build commit tag (default)
+  - Adds semantic release tag to manifest based on triggering git tag (Default)
+  - (Optional) Add 'latest' tag to manifest
+  - (Optional) Sign image manifest using cosign and provided cosign-generated keys
+
+executor:
+  name: circleci-executor-builder
+  image: << parameters.executor-image-name >>
+  resource-class: << parameters.executor-resource-class >>
+  registry-login: << parameters.registry-login >>
+  registry-password: << parameters.registry-password >>
+
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: Default shell invocation.
+    type: string
+    default: /bin/bash -eo pipefail
+
+  executor-image-name:
+    description: Remote-docker executor image. Default is twdps/circleci-executor-builder:latest.
+    type: string
+    default: docker.io/twdps/circleci-executor-builder:latest
+
+  registry-login:
+    description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: Environment variable containing Password for reigstry access. Default is DOCKER_PASSWORD.
+    type: env_var_name
+    default: DOCKER_PASSWORD
+
+  executor-resource-class:
+    description: Executor resource class. Default is medium.
+    type: enum
+    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    default: medium
+
+  registry:
+    description: Name of registry. Default is docker.io
+    type: string
+    default: docker.io
+
+  bake-file:
+    description: Name of docker-bake.json file. Default is docker-bake.json.
+    type: string
+    default: docker-bake.json
+
+  commit-tag:
+    description: Value of tag to pull for publish release. Default is dev.${CIRCLE_SHA1:0:7}.
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  release-tag:
+    description: Value for an additional release tag.
+    type: string
+    default: ${CIRCLE_TAG}
+
+  include-latest:
+    description: Include latest tag in release. Default is false.
+    type: string
+    default: "false"
+
+  sign-image:
+    description: Sign OCI image using cosign. Default is false.
+    type: boolean
+    default: false
+
+  cosign-sign-key:
+    description: Path to private key used to sign image. Default is ./cosign.key
+    type: string
+    default: cosign.key
+
+  cosign-verify-key:
+    description: Path to public key used to verify signature. Default is ./cosign.pub
+    type: string
+    default: cosign.pub
+
+  cosign-password:
+    description: Environment variable containing signing key passphrase. Default is COSIGN_PASSWORD.
+    type: env_var_name
+    default: COSIGN_PASSWORD
+
+  after-checkout:
+    description: Optional steps to run after checking out the code.
+    type: steps
+    default: []
+
+  before-release:
+    description: Optional steps to run prior to tagging release versions of image.
+    type: steps
+    default: []
+
+  after-release:
+    description: Optional steps to run after tagging the docker image.
+    type: steps
+    default: []
+
+steps:
+  - checkout
+  - setup_remote_docker
+  - attach_workspace:
+      at: ~/project/workspace
+  - when:
+      name: Run after-checkout lifecycle hook steps.
+      condition: << parameters.after-checkout >>
+      steps: << parameters.after-checkout >>
+  - confirm-registry:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
+  - when:
+      name: Run before-release lifecycle hook steps
+      condition: << parameters.before-release >>
+      steps: << parameters.before-release >>
+  - tagx:
+      bake-file: << parameters.bake-file >>
+      commit-tag: << parameters.commit-tag >>
+      release-tag: << parameters.release-tag >>
+      include-latest: << parameters.include-latest >>
+  - when:
+      name: Sign image using Cosign
+      condition: << parameters.sign-image >>
+      steps:
+        - signx:
+            bake-file: << parameters.bake-file >>
+            release-tag: << parameters.release-tag >>
+            cosign-sign-key: << parameters.cosign-sign-key >>
+            cosign-verify-key: << parameters.cosign-verify-key >>
+            cosign-password: << parameters.cosign-password >>
+  - when:
+      name: Run after-release lifecycle hook steps
+      condition: << parameters.after-release >>
+      steps: << parameters.after-release >>

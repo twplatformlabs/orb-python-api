@@ -1,0 +1,170 @@
+# src/jobs/oci-image-build.yaml
+# yamllint disable rule:line-length
+---
+description: Use buildx with bake file on machine executor to create Python images.
+
+executor:
+  name: machine-executor
+  executor-machine: << parameters.executor-machine >>
+  executor-resource-class: << parameters.executor-resource-class >>
+shell: << parameters.shell >>
+
+parameters:
+
+  shell:
+    description: default shell invocation. Override to support different shells or tools like secrethub.io
+    type: string
+    default: /bin/bash -eo pipefail
+
+  executor-machine:
+    description: Machine executor environment. Default is ubuntu-2604:current.
+    type: string
+    default: ubuntu-2604:current
+
+  executor-resource-class:
+    description: specify executor resource class. Default is medium.
+    type: enum
+    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
+    default: medium
+
+  registry:
+    description: Name of DTR compatible registry. Can use private registry.
+    type: string
+    default: docker.io
+
+  registry-login:
+    description: Username for reigstry access.
+    type: env_var_name
+    default: DOCKER_LOGIN
+
+  registry-password:
+    description: Password for registry access.
+    type: env_var_name
+    default: DOCKER_PASSWORD
+
+  bake-file:
+    description: Name of docker-bake.json file. Default is docker-bake.json.
+    type: string
+    default: "docker-bake.json"
+
+  op-version:
+    description: Install 1Password CLI version if provided.
+    type: string
+    default: ""
+
+  target:
+    description: Bake file build target. Default is default.
+    type: string
+    default: "executors"
+
+  scout-scan:
+    description: Perform Docker Scout CVE scan of all targets in bake file. Default is false.
+    type: boolean
+    default: false
+
+  scout-outfile:
+    description: Name of output file for Docker Scout CVE scan. Default is scout.out.
+    type: string
+    default: "scout.out"
+
+  tag:
+    description: Value for image tag.
+    type: string
+    default: dev.${CIRCLE_SHA1:0:7}
+
+  extra-build-args:
+    description: >
+      (Optional) Extra flags to pass to docker build. For examples, see
+      https://docs.docker.com/engine/reference/commandline/build
+    type: string
+    default: ""
+
+  health-url:
+    description: health or liveness
+    type: string
+    default: ""
+
+  port-definition:
+    description: docker run -p parameters
+    type: string
+    default: ""
+
+  startup-delay:
+    description: time to wait for service to startup and liveness endpoint to be available
+    type: integer
+    default: 3
+
+  docker-run-arguments:
+    description: additional Docker Run arguements
+    type: string
+    default: ""
+
+  after-checkout:
+    description: Optional steps to run after checking out the code.
+    type: steps
+    default: []
+
+  after-build:
+    description: (Optional) Steps to run Docker build.
+    type: steps
+    default: []
+
+  after-liveness:
+    description: Optional steps to run after scanning and liveness checks
+    type: steps
+    default: []
+
+steps:
+  - checkout
+  - install:
+      op-version: << parameters.op-version >>
+  - when:
+      name: Run after-checkout lifecycle hook steps
+      condition: << parameters.after-checkout >>
+      steps: << parameters.after-checkout >>
+  - confirm-registry:
+      registry: << parameters.registry >>
+      registry-login: << parameters.registry-login >>
+      registry-password: << parameters.registry-password >>
+  - run:
+      name: setup artifact workspace
+      command: mkdir -p workspace
+  - buildx:
+      tag: << parameters.tag >>
+      bake-file: << parameters.bake-file >>
+      target: << parameters.target >>
+      extra-build-args: << parameters.extra-build-args >>
+  - when:
+      name: Run after_build lifecycle hook steps.
+      condition: << parameters.after-build >>
+      steps: << parameters.after-build >>
+  - when:
+      name: Perform Docker Scout CVE scan
+      condition: << parameters.scout-scan >>
+      requires:
+        - buildx
+      steps:
+        - scout-scan:
+            bake-file: << parameters.bake-file >>
+            outfile: << parameters.scout-outfile >>            
+  - when:
+      name: perform container smoke (liveness/readiness) test
+      condition: << parameters.health-url >>
+      steps:
+        - liveness:
+            bake-file: << parameters.bake-file >>
+            port-definition: << parameters.port-definition >>
+            health-url: << parameters.health-url>>
+            startup-delay: << parameters.startup-delay >>
+            docker-run-arguments: << parameters.docker-run-arguments >>
+  - when:
+      name: Run after-liveness lifecycle hook steps.
+      condition: << parameters.after-liveness >>
+      steps: << parameters.after-liveness >>
+  - persist_to_workspace:
+      root: ~/project/workspace
+      paths:
+        - "*.out"
+  - store_artifacts:
+      path: ~/project/workspace
+      destination: logs

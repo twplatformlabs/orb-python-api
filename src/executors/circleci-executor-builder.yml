@@ -3,12 +3,12 @@
 ---
 
 description: >
-  By default, orb-python-api  releasex job uses ghcr.io/twplatformlabs/circleci-executor-builder, an alpine based CircleCI
+  By default, orb-python-api releasex job uses ghcr.io/twplatformlabs/circleci-executor-builder, an alpine based CircleCI
   executor. The executor includes standard tools for tagging and signing manifestes.
 
 parameters:
 
-  executor-image:
+  executor-image-name:
     description: Specify circleci remote-docker executor image.
     type: string
 
@@ -30,7 +30,7 @@ parameters:
 resource_class: << parameters.resource-class >>
 
 docker:
-  - image: << parameters.executor-image >>
+  - image: << parameters.executor-image-name >>
     auth:
       username: ${<< parameters.registry-login >>}
       password: ${<< parameters.registry-password >>}

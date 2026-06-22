@@ -14,7 +14,7 @@ description: |
 
 executor:
   name: circleci-executor-builder
-  image: << parameters.executor-image-name >>
+  executor-image-image: << parameters.executor-image-name >>
   resource-class: << parameters.executor-resource-class >>
   registry-login: << parameters.registry-login >>
   registry-password: << parameters.registry-password >>

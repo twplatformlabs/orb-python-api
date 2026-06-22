@@ -1,4 +1,4 @@
-# src/executors/circleci-python-builder.yaml
+# src/executors/circleci-executor-builder.yaml
 # yamllint disable rule:line-length
 ---
 

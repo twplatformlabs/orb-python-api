@@ -197,7 +197,7 @@ workflows:
           registry-password: GHCR_PASSWORD
           registry: *registry-short
           bake-file: test/docker-bake.json
-          include-latest: true
+          include-latest: "true"
           sign-image: true
           after-checkout:
             - run:

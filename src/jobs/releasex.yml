@@ -71,8 +71,8 @@ parameters:
 
   include-latest:
     description: Include latest tag in release. Default is false.
-    type: boolean
-    default: false
+    type: string
+    default: "false"
 
   sign-image:
     description: Sign OCI image using cosign. Default is false.

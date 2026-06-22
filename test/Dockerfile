@@ -2,14 +2,14 @@ FROM python:3.13-alpine
 
 LABEL org.opencontainers.image.created="%%CREATED%%" \
       org.opencontainers.image.authors="nic.cheneweth@thoughtworks.com" \
-      org.opencontainers.image.documentation="https://github.com/twplatformlabs/agentic-code-reviewer" \
-      org.opencontainers.image.source="https://github.com/twplatformlabs/agentic-code-reviewer" \
-      org.opencontainers.image.url="https://github.com/twplatformlabs/agentic-code-reviewer" \
+      org.opencontainers.image.documentation="https://github.com/twplatformlabs/orb-python-api" \
+      org.opencontainers.image.source="https://github.com/twplatformlabs/orb-python-api" \
+      org.opencontainers.image.url="https://github.com/twplatformlabs/orb-python-api" \
       org.opencontainers.image.version="%%VERSION%%" \
       org.opencontainers.image.vendor="ThoughtWorks, Inc." \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.title="agentic-code-reviewer" \
-      org.opencontainers.image.description="Virtual team member that responds to PRs" \
+      org.opencontainers.image.title="orb-python-api" \
+      org.opencontainers.image.description="test fixture build in orb ci" \
       org.opencontainers.image.base.name="%%BASE%%"
 
 ENV MUSL_LOCPATH=/usr/share/i18n/locales/musl \
@@ -27,9 +27,9 @@ RUN apk add --no-cache \
         make \
         musl \
         musl-dev \
-        musl-utils==1.2.5-r10 \
-        gcc==14.2.0-r6 \
-        gettext-dev==0.24.1-r0 && \
+        musl-utils \
+        gcc \
+        gettext-dev && \
     wget -q https://gitlab.com/rilian-la-te/musl-locales/-/archive/master/musl-locales-master.zip && \
     unzip musl-locales-master.zip && cd musl-locales-master && \
     cmake -DLOCALE_PROFILE=OFF -D CMAKE_INSTALL_PREFIX:PATH=/usr . && \

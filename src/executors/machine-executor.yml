@@ -9,7 +9,7 @@ parameters:
   executor-machine:
     description: circleci machine executor
     type: string
-    default: ubuntu-2204:current
+    default: ubuntu-2604:current
 
   executor-resource-class:
     description: specify the resouce class for the image

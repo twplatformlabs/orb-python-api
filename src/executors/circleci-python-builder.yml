@@ -3,7 +3,7 @@
 ---
 
 description: >
-  By default, orb-python-api uses twdps/circleci-python-builder, an alpine based CircleCI
+  By default, orb-python-api uses ghcr.io/twplatformlabs/circleci-python-builder, an alpine based CircleCI
   executor. The executor includes standard tools for linting, testing, and scanning python code.
 
   https://hub.docker.com/repository/docker/twdps/circleci-python-builder

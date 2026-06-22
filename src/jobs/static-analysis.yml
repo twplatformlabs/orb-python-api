@@ -12,7 +12,7 @@ description: |
     - hadolint: [true* | false] Run hadolint on Dockerfile.
     - unit-test: [true* | false] Run pytest unit test.
     - coverage: [true* | false] Calculate unit test coverage.
-    - afer-checkout: [] Add custom steps to run immediately after code checkout.
+    - after-checkout: [] Add custom steps to run immediately after code checkout.
     - after-analysis: [] Add custom steps to run after static analysis is compmlete.
   *default
 

@@ -68,7 +68,7 @@ jobs:
   test install command:
     machine:
       image: ubuntu-2604:current
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout
       - python-api/install:

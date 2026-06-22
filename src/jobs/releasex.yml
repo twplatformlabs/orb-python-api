@@ -31,7 +31,7 @@ parameters:
   executor-image-name:
     description: Remote-docker executor image. Default is ghcr.io/txplatformlabs/circleci-executor-builder:latest.
     type: string
-    default: ghcr.io/txplatformlabs/circleci-executor-builder:latest
+    default: ghcr.io/twplatformlabs/circleci-executor-builder:latest
 
   registry-login:
     description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.

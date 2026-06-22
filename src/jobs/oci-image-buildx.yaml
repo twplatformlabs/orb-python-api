@@ -24,8 +24,8 @@ parameters:
   executor-resource-class:
     description: specify executor resource class. Default is medium.
     type: enum
-    enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
-    default: large
+    enum: [medium.gen2, large.gen2, xlarge.gen2, 2xlarge.gen2, 2xlarge+.gen2]
+    default: large.gen2
 
   registry:
     description: Name of DTR compatible registry. Can use private registry.

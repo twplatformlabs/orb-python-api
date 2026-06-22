@@ -29,9 +29,9 @@ parameters:
     default: /bin/bash -eo pipefail
 
   executor-image-name:
-    description: Remote-docker executor image. Default is twdps/circleci-executor-builder:latest.
+    description: Remote-docker executor image. Default is ghcr.io/txplatformlabs/circleci-executor-builder:latest.
     type: string
-    default: docker.io/twdps/circleci-executor-builder:latest
+    default: ghcr.io/txplatformlabs/circleci-executor-builder:latest
 
   registry-login:
     description: Environment variable containing Username for reigstry access. Default is DOCKER_LOGIN.

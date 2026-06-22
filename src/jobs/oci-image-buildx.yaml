@@ -151,7 +151,7 @@ steps:
       name: perform container smoke (liveness/readiness) test
       condition: << parameters.health-url >>
       steps:
-        - liveness:
+        - livenessx:
             bake-file: << parameters.bake-file >>
             port-definition: << parameters.port-definition >>
             health-url: << parameters.health-url>>

@@ -1,0 +1,49 @@
+{
+  "variable": {
+    "CREATED": { "default": "" },
+    "REVISION": { "default": "" },
+    "ALPINE_BASE": { "default": "" },
+    "TAG": { "default": "" }
+  },
+
+  "group": {
+    "executors": {
+      "targets": ["alpine"]
+    }
+  },
+  "target": {
+    "_release": {
+      "labels": {
+        "org.opencontainers.image.created": "${CREATED}",
+        "org.opencontainers.image.authors": "nic.cheneweth@thoughtworks.com",
+        "org.opencontainers.image.revision": "${REVISION}",
+        "org.opencontainers.image.vendor": "ThoughtWorks, Inc.",
+        "org.opencontainers.image.licenses": "MIT"
+      },
+      "args": {
+        "BUILDKIT_CONTEXT_KEEP_GIT_DIR": "1",
+        "BUILDX_EXPERIMENTAL": "1",
+        "BUILDKIT_SBOM_SCAN_CONTEXT": "1"
+      },
+      "attest": [
+        "type=provenance,mode=max,version=v1",
+        "type=sbom"
+      ]
+    },
+    "alpine": {
+      "dockerfile": "test/Dockerfile.bake",
+      "tags": ["ghcr.io/twplatformlabs/orb-python-api:${TAG}"],
+      "context": ".",
+      "platforms": ["linux/amd64"],
+      "inherits": ["_release"],
+      "labels": {
+        "org.opencontainers.image.url": "https://github.com/twplatformlabs/orb-python-api",
+        "org.opencontainers.image.documentation": "https://github.com/twplatformlabs/orb-python-api",
+        "org.opencontainers.image.source": "https://github.com/twplatformlabs/orb-python-api",
+        "org.opencontainers.image.title": "orb-python-api",
+        "org.opencontainers.image.description": "test fixture build in orb ci",
+        "org.opencontainers.image.base.name": "${ALPINE_BASE}"
+      }
+    }
+  }
+}

@@ -49,15 +49,6 @@ steps:
             command: <<include(scripts/install_1password.sh)>>
 
   - when:
-      condition: << parameters.vault-version >>
-      steps:
-        - run:
-            name: install vault version << parameters.vault-version >>
-            environment:
-              VAULT_VERSION: << parameters.vault-version >>
-            command: <<include(scripts/install_vault.sh)>>
-
-  - when:
       condition: << parameters.snyk-version >>
       steps:
         - run:

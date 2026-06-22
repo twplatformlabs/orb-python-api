@@ -33,11 +33,11 @@ parameters:
 
 steps:
   - run:
-      name: Docker Scout CVE scan based on docker bake file targets
+      name: Liveness check based on docker bake file targets
       environment:
         BAKEFILE: << parameters.bake-file >>
         PORT_DEFINITION: << parameters.port-definition >>
         HEALTH_URL: << parameters.health-url>>
         STARTUP_DELAY: << parameters.startup-delay >>
         DOCKER_RUN_ARGUEMENTS: << parameters.docker-run-arguments >>
-      command: <<include(scripts/scout_scan.sh)>>
+      command: <<include(scripts/livenessx.sh)>>

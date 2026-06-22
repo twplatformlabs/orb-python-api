@@ -3,8 +3,8 @@
 ---
 
 description: >
-  By default, orb-python-api uses ghcr.io/twplatformlabs/circleci-python-builder, an alpine based CircleCI
-  executor. The executor includes standard tools for linting, testing, and scanning python code.
+  By default, orb-python-api  releasex job uses ghcr.io/twplatformlabs/circleci-executor-builder, an alpine based CircleCI
+  executor. The executor includes standard tools for tagging and signing manifestes.
 
 parameters:
 

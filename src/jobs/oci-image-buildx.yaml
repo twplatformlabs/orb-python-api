@@ -25,7 +25,7 @@ parameters:
     description: specify executor resource class. Default is medium.
     type: enum
     enum: [medium, medium+, large, xlarge, 2xlarge, 2xlarge+]
-    default: medium
+    default: large
 
   registry:
     description: Name of DTR compatible registry. Can use private registry.

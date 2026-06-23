@@ -111,9 +111,10 @@ workflows:
           context: *context
           registry: *registry
           image: *image
-          shell: /bin/bash -eo pipefail
           executor-machine: ubuntu-2604:current
           executor-resource-class: large.gen2
+          registry-login: GHCR_LOGIN
+          registry-password: GHCR_PASSWORD
           dockerfile: test/Dockerfile
           cve-scan: true
           snyk-severity-threshold: "low"
@@ -163,7 +164,7 @@ workflows:
           registry: *registry-short
           registry-login: GHCR_LOGIN
           registry-password: GHCR_PASSWORD
-          bake-file: test/bake-file.json
+          bake-file: test/docker-bake.json
           op-version: latest
           target: "executors"
           scout-scan: true

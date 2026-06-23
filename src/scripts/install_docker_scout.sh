@@ -6,8 +6,8 @@ get_latest_cli_version() {
     SCOUT_VERSION="$(curl -s "https://api.github.com/repos/docker/scout-cli/releases/latest" | jq -r .tag_name)"
 }
 
-# Install op-cli
-install_op_cli() {
+# Install docker_scout
+install_docker_scout() {
     echo "Installing Docker Scout version: ${SCOUT_VERSION}"
     download_url="https://github.com/docker/scout-cli/releases/download/${SCOUT_VERSION}/docker-scout_${SCOUT_VERSION:1}_linux_amd64.tar.gz"
     curl -fL -O "${download_url}"

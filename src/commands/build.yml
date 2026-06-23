@@ -39,7 +39,7 @@ parameters:
 
 steps:
   - run:
-      name: Local test build
+      name: Docker build
       command: |
         str="<< parameters.image >>.<< parameters.tag >>.build.out"
         outfile=${str#*/}
@@ -48,3 +48,4 @@ steps:
           <<#parameters.extra-build-args>><<parameters.extra-build-args>><</parameters.extra-build-args>> \
           -t << parameters.registry >>/<< parameters.image >>:<< parameters.tag >> \
           -f << parameters.dockerfile >> << parameters.path >> 2>&1 | tee workspace/$outfile
+        echo "build complete"

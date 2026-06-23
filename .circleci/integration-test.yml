@@ -32,7 +32,7 @@ jobs:
 
   test static analysis commands:
     docker:
-      - image: twdps/circleci-python-builder:stable
+      - image: ghcr.io/twplatformlabs/circleci-python-builder:latest
     steps:
       - checkout
       - setup_remote_docker
@@ -193,7 +193,7 @@ workflows:
       - python-api/releasex:
           name: test releasex job
           context: *context
-          executor-image-name: ghcr.io/twplatformlabs/circleci-executor-builder:latest
+          executor-image-name: ghcr.io/twplatformlabs/circleci-executor-builder:alpine-latest
           registry-login: GHCR_LOGIN
           registry-password: GHCR_PASSWORD
           registry: *registry-short

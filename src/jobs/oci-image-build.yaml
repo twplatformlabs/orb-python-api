@@ -154,6 +154,9 @@ steps:
       registry: << parameters.registry >>
       registry-login: << parameters.registry-login >>
       registry-password: << parameters.registry-password >>
+  - run:
+      name: setup artifact workspace
+      command: mkdir -p workspace
   - build:
       dockerfile: << parameters.dockerfile >>
       path: << parameters.path >>
@@ -195,3 +198,4 @@ steps:
       name: Run after_push lifecycle hook steps.
       condition: << parameters.after-push >>
       steps: << parameters.after-push >>
+  - persist-workspace

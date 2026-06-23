@@ -12,7 +12,7 @@ install_docker_scout() {
     download_url="https://github.com/docker/scout-cli/releases/download/${SCOUT_VERSION}/docker-scout_${SCOUT_VERSION:1}_linux_amd64.tar.gz"
     curl -fL -O "${download_url}"
     tar -xzf "docker-scout_${SCOUT_VERSION:1}_linux_amd64.tar.gz" docker-scout && rm "docker-scout_${SCOUT_VERSION:1}_linux_amd64.tar.gz"
-    sudo mkdir -p "$HOME/.docker/cli-plugins" && sudo mv docker-scout "$HOME/.docker/cli-plugins/docker-scout"
+    mkdir -p "$HOME/.docker/cli-plugins" && mv docker-scout "$HOME/.docker/cli-plugins/docker-scout"
 }
 
 if [[ "$SCOUT_VERSION" == "latest" ]]; then

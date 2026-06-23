@@ -41,4 +41,5 @@ steps:
       name: Confirm Docker registry login
       command: |
         echo 'write to .docker/config.json is secure in ephemeral runtime environment'
+        whoami
         echo ${<< parameters.registry-password >>} | docker login -u ${<< parameters.registry-login >>} --password-stdin << parameters.registry >>

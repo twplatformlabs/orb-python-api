@@ -22,4 +22,4 @@ else
 fi
 echo "$SCOUT_VERSION"
 install_docker_scout
-docker scout --version
+docker scout version

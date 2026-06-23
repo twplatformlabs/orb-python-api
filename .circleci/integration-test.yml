@@ -10,7 +10,6 @@ globals:
   - &image orb-python-api
   - &registry ghcr.io/twplatformlabs
   - &registry-short ghcr.io
-  - &shell op run --env-file op.env -- /bin/bash -eo pipefail
 
 commands:
 
@@ -161,7 +160,6 @@ workflows:
       - python-api/oci-image-buildx:
           name: test oci-image-buildx job
           context: *context
-          shell: *shell
           registry: *registry-short
           registry-login: GHCR_LOGIN
           registry-password: GHCR_PASSWORD
@@ -174,6 +172,7 @@ workflows:
           startup-delay: 5
           docker-run-arguments: "-e API_VERSION=dev.${CIRCLE_SHA1:0:7}"
           after-checkout:
+            - set-environment
             - run:
                 name: after-checkout message
                 command: echo "after-checkout"
@@ -191,7 +190,6 @@ workflows:
       - python-api/releasex:
           name: test releasex job
           context: *context
-          shell: *shell
           executor-image-name: ghcr.io/twplatformlabs/circleci-executor-builder:latest
           registry-login: GHCR_LOGIN
           registry-password: GHCR_PASSWORD
@@ -200,6 +198,7 @@ workflows:
           include-latest: "true"
           sign-image: true
           after-checkout:
+            - set-environment
             - run:
                 name: after-checkout message
                 command: echo "after-checkout"

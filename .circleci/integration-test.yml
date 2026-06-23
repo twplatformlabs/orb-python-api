@@ -146,6 +146,8 @@ workflows:
           context: *context
           image: *image
           registry: *registry
+          registry-login: GHCR_LOGIN
+          registry-password: GHCR_PASSWORD
           publish-tag: $CIRCLE_BUILD_NUM
           before-push:
             - set-environment

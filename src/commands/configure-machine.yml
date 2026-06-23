@@ -21,8 +21,8 @@ steps:
   - run:
       name: install Docker scout
       command: |
-        download_version=$(curl -s "https://api.github.com/repos/docker/scout-cli/releases/latest" | jq -r .tag_name) && \
-        download_url="https://github.com/docker/scout-cli/releases/download/${download_version}/docker-scout_${download_version:1}_linux_amd64.tar.gz" && \
-        curl -fL -O "${download_url}" && \
-        tar -xzf "docker-scout_${download_version:1}_linux_amd64.tar.gz" docker-scout && rm "docker-scout_${download_version:1}_linux_amd64.tar.gz" && \
-        sudo mkdir -p "$HOME/.docker/cli-plugins" && sudo mv docker-scout "$HOME/.docker/cli-plugins/docker-scout" && \
+        download_version=$(curl -s "https://api.github.com/repos/docker/scout-cli/releases/latest" | jq -r .tag_name)
+        download_url="https://github.com/docker/scout-cli/releases/download/${download_version}/docker-scout_${download_version:1}_linux_amd64.tar.gz"
+        curl -fL -O "${download_url}"
+        tar -xzf "docker-scout_${download_version:1}_linux_amd64.tar.gz" docker-scout && rm "docker-scout_${download_version:1}_linux_amd64.tar.gz"
+        sudo mkdir -p "$HOME/.docker/cli-plugins" && sudo mv docker-scout "$HOME/.docker/cli-plugins/docker-scout"

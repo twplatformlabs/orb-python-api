@@ -37,6 +37,11 @@ parameters:
     type: string
     default: ""
 
+  docker-scout-version:
+    description: Install Oras CLI version if provided.
+    type: string
+    default: ""
+
 steps:
 
   - when:
@@ -92,3 +97,12 @@ steps:
             environment:
               SYFT_VERSION: << parameters.syft-version >>
             command: <<include(scripts/install_syft.sh)>>
+
+  - when:
+      condition: << parameters.docker-scout-version >>
+      steps:
+        - run:
+            name: install docker scout version << parameters.docker-scout-version >>
+            environment:
+              SCOUT_VERSION: << parameters.docker-scout-version >>
+            command: <<include(scripts/install_docker_scout.sh)>>

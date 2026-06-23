@@ -52,6 +52,11 @@ parameters:
     type: string
     default: ""
 
+  docker-scout-version:
+    description: Install docker-scout version if provided.
+    type: string
+    default: ""
+
   target:
     description: Bake file build target. Default is default.
     type: string
@@ -118,6 +123,7 @@ steps:
   - checkout
   - install:
       op-version: << parameters.op-version >>
+      docker-scout-version: << parameters.docker-scout-version >>
   - when:
       name: Run after-checkout lifecycle hook steps
       condition: << parameters.after-checkout >>
@@ -147,6 +153,7 @@ steps:
         - scout-scan:
             bake-file: << parameters.bake-file >>
             outfile: << parameters.scout-outfile >>
+
   - when:
       name: perform container smoke (liveness/readiness) test
       condition: << parameters.health-url >>

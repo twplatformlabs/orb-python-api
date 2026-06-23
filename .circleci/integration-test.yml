@@ -194,6 +194,7 @@ workflows:
           name: test releasex job
           context: *context
           executor-image-name: ghcr.io/twplatformlabs/circleci-executor-builder:alpine-latest
+          release-teg: "0.0.0"
           registry-login: GHCR_LOGIN
           registry-password: GHCR_PASSWORD
           registry: *registry-short
